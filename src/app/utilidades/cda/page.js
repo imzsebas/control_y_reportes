@@ -19,15 +19,9 @@ export default function CdaPage() {
           </button>
           <button
             onClick={() => setVista("cda")}
-            style={botonStyle}
+            className="bg-green-500 px-3 py-1 rounded"
           >
-            Agregar Casa de Adolescentes
-          </button>
-          <button
-            onClick={() => setVista("cda")}
-            style={botonStyle}
-          >
-            Ver Casas de Adolescentes
+            Agregar / Ver Casas de Adolescentes
           </button>
         </nav>
       </header>
@@ -40,20 +34,7 @@ export default function CdaPage() {
         )}
         {vista === "participante" && <ParticipantesForm />}
         {vista === "cda" && <CdaForm />}
-        {/* Eliminamos CdaList para evitar errores */}
       </main>
     </div>
   );
 }
-
-// Estilo simple para los botones
-const botonStyle = {
-  marginLeft: 12,
-  padding: "6px 12px",
-  backgroundColor: "#0070f3",
-  color: "white",
-  border: "none",
-  borderRadius: 6,
-  cursor: "pointer",
-  fontSize: 14
-};

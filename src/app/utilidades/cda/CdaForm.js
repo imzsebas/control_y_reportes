@@ -6,27 +6,31 @@ export default function CdaForm() {
   const initialForm = {
     fecha_inicio: "",
     fecha_termino: "",
-    siembra: null // se puede agregar después
+    siembra: null
   };
 
   const [formData, setFormData] = useState(initialForm);
   const [cdaList, setCdaList] = useState([]);
-  const [editingCda, setEditingCda] = useState(null);
   const [participantes, setParticipantes] = useState([]);
+  const [openCda, setOpenCda] = useState(null); // CDA abierta para checkbox
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState({});
+  const [cdaParticipantes, setCdaParticipantes] = useState({}); // Confirmados por CDA
 
-  // Cargar todos los CDA
+  // Cargar CDA existentes
   const fetchCda = async () => {
-    const { data, error } = await supabase.from("cda").select("*").order("fecha_inicio", { ascending: false });
-    if (error) console.error(error);
-    else setCdaList(data);
+    const { data, error } = await supabase
+      .from("cda")
+      .select("*")
+      .order("id_cda", { ascending: false });
+    if (error) return console.error(error);
+    setCdaList(data);
   };
 
   // Cargar participantes
   const fetchParticipantes = async () => {
-    const { data, error } = await supabase.from("participantes").select("*").order("nombre_participante");
-    if (error) console.error(error);
-    else setParticipantes(data);
+    const { data, error } = await supabase.from("participantes").select("*");
+    if (error) return console.error(error);
+    setParticipantes(data);
   };
 
   useEffect(() => {
@@ -39,57 +43,60 @@ export default function CdaForm() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCdaSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!formData.fecha_inicio || !formData.fecha_termino) {
-      alert("Debes ingresar fechas de inicio y término");
-      return;
-    }
+    if (!formData.fecha_inicio) return alert("Fecha de inicio requerida");
 
     try {
-      let payload = {
-        fecha_inicio: formData.fecha_inicio,
-        fecha_termino: formData.fecha_termino,
-        siembra: formData.siembra ? parseInt(formData.siembra, 10) : null
-      };
+      const { data, error } = await supabase
+        .from("cda")
+        .insert([{
+          fecha_inicio: formData.fecha_inicio,
+          fecha_termino: formData.fecha_termino || null,
+          siembra: formData.siembra ? parseInt(formData.siembra, 10) : null
+        }])
+        .select()
+        .single();
 
-      let result;
-      if (editingCda) {
-        // Modificar CDA existente
-        const { data, error } = await supabase
-          .from("cda")
-          .update(payload)
-          .eq("id_cda", editingCda);
-        if (error) throw error;
-        result = data;
-      } else {
-        // Agregar nuevo CDA
-        const { data, error } = await supabase.from("cda").insert([payload]).select().single();
-        if (error) throw error;
-        result = data;
-      }
+      if (error) throw error;
 
-      alert("Registro guardado exitosamente");
+      alert("CDA agregado");
       setFormData(initialForm);
-      setEditingCda(null);
       fetchCda();
     } catch (err) {
       console.error(err);
-      alert("Error guardando CDA: " + (err.message || JSON.stringify(err)));
+      alert("Error agregando CDA: " + (err.message || JSON.stringify(err)));
     }
   };
 
-  const handleEdit = (cda) => {
-    setFormData({
-      fecha_inicio: cda.fecha_inicio,
-      fecha_termino: cda.fecha_termino,
-      siembra: cda.siembra
-    });
-    setEditingCda(cda.id_cda);
+  // Manejar abrir/cerar checkbox
+  const handleToggleParticipantes = (id_cda) => {
+    if (openCda === id_cda) {
+      setOpenCda(null);
+    } else {
+      setOpenCda(id_cda);
+      fetchCdaParticipantes(id_cda);
+    }
   };
 
-  // Manejar selección de participantes
+  // Cargar participantes confirmados
+  const fetchCdaParticipantes = async (id_cda) => {
+    const { data, error } = await supabase
+      .from("cda_participantes")
+      .select("id_participante, asistio, participantes(nombre_participante)")
+      .eq("id_cda", id_cda);
+
+    if (error) return console.error(error);
+
+    setCdaParticipantes(prev => ({
+      ...prev,
+      [id_cda]: data.filter(d => d.asistio).map(d => ({
+        id_participante: d.id_participante,
+        nombre_participante: d.participantes.nombre_participante
+      }))
+    }));
+  };
+
   const handleParticipanteCheck = (id) => {
     setParticipantesSeleccionados(prev => ({
       ...prev,
@@ -100,7 +107,6 @@ export default function CdaForm() {
   const handleAgregarParticipantes = async (id_cda) => {
     try {
       const registros = Object.entries(participantesSeleccionados)
-        .filter(([_, asistio]) => asistio)
         .map(([id_participante, asistio]) => ({
           id_cda,
           id_participante: parseInt(id_participante, 10),
@@ -115,7 +121,8 @@ export default function CdaForm() {
       const { error } = await supabase.from("cda_participantes").upsert(registros);
       if (error) throw error;
 
-      alert("Participantes agregados correctamente");
+      alert("Asistencia confirmada");
+      fetchCdaParticipantes(id_cda);
       setParticipantesSeleccionados({});
     } catch (err) {
       console.error(err);
@@ -125,53 +132,78 @@ export default function CdaForm() {
 
   return (
     <div style={{ padding: 12 }}>
-      <h3>{editingCda ? "Modificar Casa de Adolescentes" : "Agregar Casa de Adolescentes"}</h3>
-
-      <form onSubmit={handleCdaSubmit}>
+      <h3>Agregar Casa de Adolescentes</h3>
+      <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
         <div style={{ marginBottom: 12 }}>
-          <label>Fecha de inicio:</label>
+          <label>Fecha inicio:</label>
           <input type="datetime-local" name="fecha_inicio" value={formData.fecha_inicio} onChange={handleChange} required />
         </div>
-
         <div style={{ marginBottom: 12 }}>
-          <label>Fecha de término:</label>
-          <input type="datetime-local" name="fecha_termino" value={formData.fecha_termino} onChange={handleChange} required />
+          <label>Fecha término:</label>
+          <input type="datetime-local" name="fecha_termino" value={formData.fecha_termino} onChange={handleChange} />
         </div>
-
         <div style={{ marginBottom: 12 }}>
-          <label>Siembra (opcional):</label>
+          <label>Siembra:</label>
           <input type="number" name="siembra" value={formData.siembra || ""} onChange={handleChange} />
         </div>
-
-        <button type="submit">{editingCda ? "Actualizar" : "Guardar"}</button>
+        <button type="submit" style={botonStyle}>Guardar CDA</button>
       </form>
 
-      <h3 style={{ marginTop: 24 }}>Lista de Casas de Adolescentes</h3>
+      <h3>Listado de Casas de Adolescentes</h3>
       {cdaList.map(cda => (
         <div key={cda.id_cda} style={{ border: "1px solid #ccc", padding: 8, marginBottom: 8 }}>
           <div>Inicio: {cda.fecha_inicio}</div>
           <div>Término: {cda.fecha_termino}</div>
           <div>Siembra: {cda.siembra ?? "N/A"}</div>
-          <button onClick={() => handleEdit(cda)}>Modificar</button>
-          <button onClick={() => handleAgregarParticipantes(cda.id_cda)}>Agregar Participantes</button>
+          <button onClick={() => handleToggleParticipantes(cda.id_cda)} style={{ marginTop: 4, ...botonStyle }}>
+            Agregar Participantes
+          </button>
 
-          <div style={{ marginTop: 8 }}>
-            <h4>Participantes</h4>
-            {participantes.map(p => (
-              <div key={p.id_participante}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={participantesSeleccionados[p.id_participante] || false}
-                    onChange={() => handleParticipanteCheck(p.id_participante)}
-                  />
-                  {p.nombre_participante} ({p.edad} años)
-                </label>
-              </div>
-            ))}
-          </div>
+          {openCda === cda.id_cda ? (
+            <div style={{ marginTop: 8, borderTop: "1px solid #ddd", paddingTop: 8 }}>
+              <h4>Participantes</h4>
+              {participantes.map(p => (
+                <div key={p.id_participante}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={participantesSeleccionados[p.id_participante] || false}
+                      onChange={() => handleParticipanteCheck(p.id_participante)}
+                    />
+                    {p.nombre_participante} ({p.edad} años)
+                  </label>
+                </div>
+              ))}
+              <button
+                onClick={() => handleAgregarParticipantes(cda.id_cda)}
+                style={{ marginTop: 8, padding: "4px 8px", backgroundColor: "#0070f3", color: "white", border: "none", borderRadius: 4 }}
+              >
+                Hecho
+              </button>
+            </div>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <h5>Asistieron:</h5>
+              {cdaParticipantes[cda.id_cda]?.length > 0
+                ? cdaParticipantes[cda.id_cda].map(p => <div key={p.id_participante}>{p.nombre_participante}</div>)
+                : <p>Ninguno aún</p>}
+            </div>
+          )}
         </div>
       ))}
     </div>
   );
 }
+
+// Botón estilo simple
+const botonStyle = {
+  marginTop: 4,
+  marginLeft: 0,
+  padding: "6px 12px",
+  backgroundColor: "#0070f3",
+  color: "white",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontSize: 14
+};
