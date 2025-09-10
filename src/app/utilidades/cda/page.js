@@ -17,10 +17,16 @@ export default function CdaPage() {
           >
             Agregar Participante
           </button>
-           <button style={botonStyle} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+          <button
+            onClick={() => setVista("cda")}
+            style={botonStyle}
+          >
             Agregar Casa de Adolescentes
           </button>
-          <button style={botonStyle} onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>
+          <button
+            onClick={() => setVista("cda")}
+            style={botonStyle}
+          >
             Ver Casas de Adolescentes
           </button>
         </nav>
@@ -34,12 +40,11 @@ export default function CdaPage() {
         )}
         {vista === "participante" && <ParticipantesForm />}
         {vista === "cda" && <CdaForm />}
-        {vista === "listado" && <CdaList />}
+        {/* Eliminamos CdaList para evitar errores */}
       </main>
     </div>
   );
 }
-
 
 // Estilo simple para los botones
 const botonStyle = {
