@@ -2,7 +2,6 @@
 import { useState } from "react";
 import ParticipantesForm from "./participantes/page";
 import CdaForm from "./CdaForm";
-import CdaList from "./CdaList";
 
 export default function CdaPage() {
   const [vista, setVista] = useState("inicio");
@@ -18,16 +17,10 @@ export default function CdaPage() {
           >
             Agregar Participante
           </button>
-          <button
-            onClick={() => setVista("cda")}
-            className="bg-green-500 px-3 py-1 rounded"
-          >
+           <button style={botonStyle} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
             Agregar Casa de Adolescentes
           </button>
-          <button
-            onClick={() => setVista("listado")}
-            className="bg-purple-500 px-3 py-1 rounded"
-          >
+          <button style={botonStyle} onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })}>
             Ver Casas de Adolescentes
           </button>
         </nav>
@@ -46,3 +39,16 @@ export default function CdaPage() {
     </div>
   );
 }
+
+
+// Estilo simple para los botones
+const botonStyle = {
+  marginLeft: 12,
+  padding: "6px 12px",
+  backgroundColor: "#0070f3",
+  color: "white",
+  border: "none",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontSize: 14
+};
