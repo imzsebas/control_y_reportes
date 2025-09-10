@@ -101,33 +101,21 @@ export default function ParticipantesForm() {
         <label>Edad:</label>
         <input type="number" name="edad" value={formData.edad} onChange={handleChange} required />
 
-        <label>Sexo:</label>
         <select name="sexo" value={formData.sexo} onChange={handleChange}>
-          <option value="masculino">Masculino</option>
-          <option value="femenino">Femenino</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Femenino">Femenino</option>
         </select>
 
-        <label>Barrio:</label>
-        <input name="barrio" value={formData.barrio} onChange={handleChange} required />
-
-        <label>Fecha de nacimiento:</label>
-        <input type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} required />
-
-        <label>Bautizado:</label>
         <select name="bautizado" value={formData.bautizado} onChange={handleChange}>
-          <option value="si">Sí</option>
-          <option value="no">No</option>
+        <option value="Si">Sí</option>
+        <option value="No">No</option>
         </select>
 
-        <label>Destacado:</label>
-        <input type="checkbox" name="destacado" checked={formData.destacado} onChange={handleChange} />
-
-        <label>Rol:</label>
         <select name="rol" value={formData.rol} onChange={handleChange}>
-          <option value="Tropa">Tropa</option>
-          <option value="Capitán">Capitán</option>
-          <option value="Valiente de David">Valiente de David</option>
-          <option value="Intendente">Intendente</option>
+        <option value="Tropa">Tropa</option>
+        <option value="Capitan">Capitan</option>
+        <option value="Valiente de David">Valiente de David</option>
+        <option value="Intendente">Intendente</option>
         </select>
 
         <label>¿Necesita acudiente?</label>
