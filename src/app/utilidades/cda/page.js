@@ -1,28 +1,36 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import ParticipantesForm from "./participantes/page";
+import CdaForm from "./CdaForm";
+import CdaList from "./CdaList";
 
 export default function CdaPage() {
-  const router = useRouter();
+  const [vista, setVista] = useState("inicio");
 
   return (
     <div>
       <header className="navbar">
         <h2 className="logo">Casa de Adolescentes</h2>
         <nav>
-          <button onClick={() => router.push("/utilidades/cda/agregar")}>
+          <button onClick={() => setVista("participante")}>
+            Agregar Participante
+          </button>
+          <button onClick={() => setVista("cda")}>
             Agregar Casa de Adolescentes
           </button>
-          <button onClick={() => router.push("/utilidades/cda/ver")}>
+          <button onClick={() => setVista("listado")}>
             Ver Casas de Adolescentes
-          </button>
-          <button onClick={() => router.push("/utilidades/cda/participantes")}>
-            Añadir Participante
           </button>
         </nav>
       </header>
 
       <main className="contenido">
-        <p>Bienvenido a Casa de Adolescentes. Selecciona una opción en el menú.</p>
+        {vista === "inicio" && (
+          <p>Bienvenido a Casa de Adolescentes. Selecciona una opción en el menú.</p>
+        )}
+        {vista === "participante" && <ParticipantesForm />}
+        {vista === "cda" && <CdaForm />}
+        {vista === "listado" && <CdaList />}
       </main>
     </div>
   );
