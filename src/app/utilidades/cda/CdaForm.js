@@ -104,31 +104,29 @@ export default function CdaForm() {
     }));
   };
 
-  const handleAgregarParticipantes = async (id_cda) => {
-    try {
-      const registros = Object.entries(participantesSeleccionados)
-        .map(([id_participante, asistio]) => ({
-          id_cda,
-          id_participante: parseInt(id_participante, 10),
-          asistio
-        }));
+const handleAgregarParticipantes = async (id_cda) => {
+  try {
+    const registros = participantes.map(p => ({
+      id_cda,
+      id_participante: p.id_participante,
+      asistio: participantesSeleccionados[p.id_participante] || false
+    }));
 
-      if (registros.length === 0) {
-        alert("Selecciona al menos un participante");
-        return;
-      }
+    // Guardar todo en la base de datos usando upsert
+    const { error } = await supabase
+      .from("cda_participantes")
+      .upsert(registros, { onConflict: ["id_cda", "id_participante"] });
 
-      const { error } = await supabase.from("cda_participantes").upsert(registros);
-      if (error) throw error;
+    if (error) throw error;
 
-      alert("Asistencia confirmada");
-      fetchCdaParticipantes(id_cda);
-      setParticipantesSeleccionados({});
-    } catch (err) {
-      console.error(err);
-      alert("Error agregando participantes: " + (err.message || JSON.stringify(err)));
-    }
-  };
+    alert("Asistencia guardada correctamente");
+    fetchCdaParticipantes(id_cda); // recargar lista de confirmados
+    setParticipantesSeleccionados({});
+  } catch (err) {
+    console.error(err);
+    alert("Error guardando asistencia: " + (err.message || JSON.stringify(err)));
+  }
+};
 
   return (
     <div style={{ padding: 12 }}>
