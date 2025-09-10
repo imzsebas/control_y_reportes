@@ -56,3 +56,25 @@ body {
   font-size: 1rem;
   color: #7f8c8d;
 }
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #004080;
+  padding: 1rem 2rem;
+  color: white;
+}
+
+.navbar nav button {
+  background: transparent;
+  border: none;
+  color: white;
+  margin-left: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.navbar nav button:hover {
+  text-decoration: underline;
+}
