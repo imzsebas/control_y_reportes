@@ -12,9 +12,9 @@ export default function CdaForm() {
   const [formData, setFormData] = useState(initialForm);
   const [cdaList, setCdaList] = useState([]);
   const [participantes, setParticipantes] = useState([]);
-  const [openCda, setOpenCda] = useState(null); // CDA abierta para checkbox
+  const [openCda, setOpenCda] = useState(null);
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState({});
-  const [cdaParticipantes, setCdaParticipantes] = useState({}); // Confirmados por CDA
+  const [cdaParticipantes, setCdaParticipantes] = useState({});
 
   // Cargar CDA existentes
   const fetchCda = async () => {
@@ -69,17 +69,42 @@ export default function CdaForm() {
     }
   };
 
-  // Manejar abrir/cerar checkbox
+  // Manejar abrir/cerrar checkbox
   const handleToggleParticipantes = (id_cda) => {
     if (openCda === id_cda) {
       setOpenCda(null);
+      // Limpiar selecciones cuando se cierra
+      setParticipantesSeleccionados({});
     } else {
       setOpenCda(id_cda);
       fetchCdaParticipantes(id_cda);
+      // Cargar el estado actual de los checkboxes
+      loadParticipantesSeleccionados(id_cda);
     }
   };
 
-  // Cargar participantes confirmados
+  // NUEVA FUNCIÓN: Cargar estado de checkboxes desde la BD
+  const loadParticipantesSeleccionados = async (id_cda) => {
+    const { data, error } = await supabase
+      .from("cda_participantes")
+      .select("id_participante, asistio")
+      .eq("id_cda", id_cda);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    // Crear objeto con el estado de cada participante
+    const seleccionados = {};
+    data.forEach(item => {
+      seleccionados[item.id_participante] = item.asistio;
+    });
+
+    setParticipantesSeleccionados(seleccionados);
+  };
+
+  // Cargar participantes confirmados (para mostrar en la lista)
   const fetchCdaParticipantes = async (id_cda) => {
     const { data, error } = await supabase
       .from("cda_participantes")
@@ -104,29 +129,29 @@ export default function CdaForm() {
     }));
   };
 
-const handleAgregarParticipantes = async (id_cda) => {
-  try {
-    const registros = participantes.map(p => ({
-      id_cda,
-      id_participante: p.id_participante,
-      asistio: participantesSeleccionados[p.id_participante] || false
-    }));
+  const handleAgregarParticipantes = async (id_cda) => {
+    try {
+      const registros = participantes.map(p => ({
+        id_cda,
+        id_participante: p.id_participante,
+        asistio: participantesSeleccionados[p.id_participante] || false
+      }));
 
-    // Guardar todo en la base de datos usando upsert
-    const { error } = await supabase
-      .from("cda_participantes")
-      .upsert(registros, { onConflict: ["id_cda", "id_participante"] });
+      // Guardar todo en la base de datos usando upsert
+      const { error } = await supabase
+        .from("cda_participantes")
+        .upsert(registros, { onConflict: ["id_cda", "id_participante"] });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    alert("Asistencia guardada correctamente");
-    fetchCdaParticipantes(id_cda); // recargar lista de confirmados
-    setParticipantesSeleccionados({});
-  } catch (err) {
-    console.error(err);
-    alert("Error guardando asistencia: " + (err.message || JSON.stringify(err)));
-  }
-};
+      alert("Asistencia guardada correctamente");
+      fetchCdaParticipantes(id_cda); // recargar lista de confirmados
+      // NO limpiar las selecciones aquí para mantener el estado
+    } catch (err) {
+      console.error(err);
+      alert("Error guardando asistencia: " + (err.message || JSON.stringify(err)));
+    }
+  };
 
   return (
     <div style={{ padding: 12 }}>
