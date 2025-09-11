@@ -334,6 +334,21 @@ export default function CdaForm() {
   }
 }
 
+// Estilos para la tabla
+const tableHeaderStyle = {
+  padding: "12px 8px",
+  textAlign: "left",
+  fontWeight: "bold",
+  borderBottom: "2px solid #dee2e6",
+  fontSize: "14px"
+};
+
+const tableCellStyle = {
+  padding: "10px 8px",
+  borderBottom: "1px solid #dee2e6",
+  fontSize: "14px"
+};
+
 // Botón estilo simple
 const botonStyle = {
   marginTop: 4,
