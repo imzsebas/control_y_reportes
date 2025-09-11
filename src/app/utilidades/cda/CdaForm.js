@@ -146,10 +146,36 @@ export default function CdaForm() {
     setParticipantesSeleccionados({ 1: true, 2: true });
   };
 
-  const fetchCdaParticipantes = async (id_cda) => {
-    const participantesQueAsistieron = cdaParticipantes[id_cda] || [];
-    setParticipantesDetallados(participantesQueAsistieron);
-  };
+const fetchCdaParticipantes = async (id_cda) => {
+    try {
+        // 🚨 Se obtienen los participantes a través de la tabla cda_participantes
+        const { data, error } = await supabase
+            .from('cda_participantes')
+            .select(`
+                participante_id,
+                participantes (
+                    id_participante,
+                    nombre_participante,
+                    edad,
+                    sexo,
+                    rol,
+                    destacado
+                )
+            `)
+            .eq('cda_id', id_cda);
+
+        if (error) {
+            console.error("Error al obtener participantes de CDA:", error);
+            return;
+        }
+
+        const participantesQueAsistieron = data.map(item => item.participantes);
+        setParticipantesDetallados(participantesQueAsistieron);
+
+    } catch (err) {
+        console.error("Error inesperado al obtener participantes de CDA:", err);
+    }
+};
 
   const handleParticipanteCheck = (id) => {
     setParticipantesSeleccionados(prev => ({
@@ -158,9 +184,39 @@ export default function CdaForm() {
     }));
   };
 
-  const handleAgregarParticipantes = async (id_cda) => {
-    alert("Asistencia guardada correctamente");
-  };
+const handleAgregarParticipantes = async (id_cda) => {
+    try {
+        const participantesToAdd = participantes
+            .filter(p => participantesSeleccionados[p.id_participante])
+            .map(p => ({
+                cda_id: id_cda,
+                participante_id: p.id_participante
+            }));
+
+        if (participantesToAdd.length === 0) {
+            alert("No hay participantes seleccionados para guardar.");
+            return;
+        }
+        
+        // 🚨 Se inserta en la tabla cda_participantes
+        const { error } = await supabase
+            .from('cda_participantes') 
+            .insert(participantesToAdd);
+
+        if (error) {
+            throw error;
+        }
+
+        alert("Asistencia guardada correctamente");
+        await fetchCdaParticipantes(id_cda); 
+        setOpenCda(null);
+        setParticipantesSeleccionados({});
+
+    } catch (err) {
+        console.error("Error al guardar asistencias:", err);
+        alert("Hubo un error al guardar la asistencia: " + err.message);
+    }
+};
 
   const toggleDestacado = async (id_participante, destacadoActual) => {
     alert(`Participante ${destacadoActual ? 'removido de' : 'agregado a'} destacados`);
