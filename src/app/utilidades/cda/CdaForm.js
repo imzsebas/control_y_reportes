@@ -54,6 +54,37 @@ export default function CdaForm() {
   const [ordenarPor, setOrdenarPor] = useState("nombre");
   const [ordenDireccion, setOrdenDireccion] = useState("asc");
 
+  // --- CAMBIOS AÑADIDOS ---
+  // Añado estados para la edición de siembra
+  const [editandoSiembra, setEditandoSiembra] = useState(false);
+  const [nuevaSiembra, setNuevaSiembra] = useState("");
+
+  // Añado funciones para manejar la lógica de edición
+  const handleModificarSiembra = () => {
+    setEditandoSiembra(true);
+    setNuevaSiembra(cdaSeleccionada.siembra || ""); // Usa el valor actual, o un string vacío si es nulo
+  };
+
+  const handleGuardarSiembra = async () => {
+    // Aquí iría la lógica para guardar en la base de datos (usando Supabase en tu caso real)
+    // El 'upsert' es la mejor opción en Supabase para insertar o actualizar
+    // const { error } = await supabase.from('cda').upsert({ id_cda: cdaSeleccionada.id_cda, siembra: nuevaSiembra });
+
+    // Lógica simulada:
+    alert(`Siembra actualizada a: ${nuevaSiembra}`);
+    setCdaList(prevList => prevList.map(cda =>
+        cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
+    ));
+    setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
+    setEditandoSiembra(false);
+  };
+
+  const handleCancelarSiembra = () => {
+    setEditandoSiembra(false);
+    setNuevaSiembra("");
+  };
+  // --- FIN DE CAMBIOS ---
+
   // Funciones simuladas para el ejemplo
   const fetchCda = async () => {
     // Simulado - en producción usarías supabase
@@ -193,7 +224,7 @@ export default function CdaForm() {
     return participantesFiltrados;
   };
 
-  // Estilos responsivos
+  // Estilos responsivos (sin cambios aquí)
   const containerStyle = {
     padding: "16px",
     maxWidth: "1200px",
