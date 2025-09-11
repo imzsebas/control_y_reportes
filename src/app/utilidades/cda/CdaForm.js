@@ -861,7 +861,7 @@ export default function CdaForm() {
                           padding: "12px",
                           borderBottom: "1px solid #e1e5e9",
                           fontSize: "14px"
-                        }}>{p.sexo === "M" ? "Masculino" : "Femenino"}</td>
+                        }}>{p.sexo === "M" ? "Masculino" : p.sexo === "F" ? "Femenino" : p.sexo}</td>
                         <td style={{
                           padding: "12px",
                           borderBottom: "1px solid #e1e5e9",
