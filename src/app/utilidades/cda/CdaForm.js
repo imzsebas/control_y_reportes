@@ -10,14 +10,11 @@ export default function CdaForm() {
   };
 
   const [formData, setFormData] = useState(initialForm);
-  const [cdaList, setCdaList] = useState([
-    { id_cda: 1, fecha_inicio: "2024-01-15T10:00", fecha_termino: "2024-01-15T18:00", siembra: 25 },
-    { id_cda: 2, fecha_inicio: "2024-02-20T09:30", fecha_termino: null, siembra: 30 }
-  ]);
+  const [cdaList, setCdaList] = useState([]);
   const [participantes, setParticipantes] = useState([]);
   const [openCda, setOpenCda] = useState(null);
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState({});
-  const [cdaParticipantes, setCdaParticipantes] = useState({});
+  const [cdaListWithCounts, setCdaListWithCounts] = useState([]);
   
   // Estados para manejo de vistas
   const [vista, setVista] = useState("lista");
@@ -35,7 +32,6 @@ export default function CdaForm() {
   const [editandoSiembra, setEditandoSiembra] = useState(false);
   const [nuevaSiembra, setNuevaSiembra] = useState("");
 
-  // FUNCIONES CORREGIDAS PARA SIEMBRA
   const handleModificarSiembra = () => {
     setEditandoSiembra(true);
     setNuevaSiembra(cdaSeleccionada.siembra || "");
@@ -43,24 +39,18 @@ export default function CdaForm() {
 
   const handleGuardarSiembra = async () => {
     try {
-      console.log("Guardando siembra:", nuevaSiembra, "para CDA:", cdaSeleccionada.id_cda);
-      
       const { error } = await supabase
         .from('cda')
         .update({ siembra: parseInt(nuevaSiembra, 10) || null })
         .eq('id_cda', cdaSeleccionada.id_cda);
 
       if (error) {
-        console.error("Error al actualizar siembra:", error);
         throw error;
       }
 
       alert(`Siembra actualizada a: ${nuevaSiembra}`);
       
-      // Actualizar estados locales
-      setCdaList(prevList => prevList.map(cda =>
-          cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
-      ));
+      await fetchAllCdaData();
       setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
       setEditandoSiembra(false);
     } catch (error) {
@@ -73,44 +63,58 @@ export default function CdaForm() {
     setEditandoSiembra(false);
     setNuevaSiembra("");
   };
-
-  const fetchCda = async () => {
-    // Aquí iría la lógica para obtener las CDA de tu base de datos
-  };
-
-  const fetchParticipantes = async () => {
+  
+  const fetchAllCdaData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('participantes')
-        .select('*')
-        .order('nombre_participante', { ascending: true });
-        
-      if (error) {
-        console.error("Error al obtener participantes:", error);
-        return;
-      }
-      setParticipantes(data);
+        const { data: cdas, error: cdaError } = await supabase
+            .from('cda')
+            .select('*');
+
+        if (cdaError) {
+            throw cdaError;
+        }
+
+        const cdasConConteo = await Promise.all(
+            cdas.map(async (cda) => {
+                const { count, error: countError } = await supabase
+                    .from('cda_participantes')
+                    .select('id_participante', { count: 'exact', head: true })
+                    .eq('id_cda', cda.id_cda);
+
+                if (countError) {
+                    throw countError;
+                }
+
+                return {
+                    ...cda,
+                    participantes_count: count
+                };
+            })
+        );
+        setCdaListWithCounts(cdasConConteo);
     } catch (err) {
-      console.error("Error inesperado al obtener participantes:", err);
+        console.error("Error al obtener datos de CDA:", err);
     }
   };
 
-  const fetchAllCdaParticipantes = async () => {
-    setCdaParticipantes({
-      1: [
-        { id_participante: 1, nombre_participante: "Juan Pérez", edad: 16, sexo: "M", rol: "Tropa", destacado: false },
-        { id_participante: 2, nombre_participante: "María González", edad: 17, sexo: "F", rol: "Capitan", destacado: true }
-      ],
-      2: [
-        { id_participante: 3, nombre_participante: "Carlos López", edad: 15, sexo: "M", rol: "Valiente de David", destacado: false }
-      ]
-    });
+  const fetchAllParticipantes = async () => {
+    try {
+        const { data, error } = await supabase
+            .from('participantes')
+            .select('*');
+        
+        if (error) {
+            throw error;
+        }
+        setParticipantes(data);
+    } catch (err) {
+        console.error("Error al obtener participantes:", err);
+    }
   };
 
   useEffect(() => {
-    fetchCda();
-    fetchParticipantes();
-    fetchAllCdaParticipantes();
+    fetchAllCdaData();
+    fetchAllParticipantes();
   }, []);
 
   const handleChange = (e) => {
@@ -122,11 +126,28 @@ export default function CdaForm() {
     e.preventDefault();
     if (!formData.fecha_inicio) return alert("Fecha de inicio requerida");
 
-    alert("CDA agregado");
-    setFormData(initialForm);
+    try {
+        const { data, error } = await supabase
+            .from('cda')
+            .insert([formData])
+            .select();
+
+        if (error) {
+            throw error;
+        }
+
+        alert("CDA agregada correctamente");
+        setFormData(initialForm);
+        fetchAllCdaData(); 
+
+    } catch (err) {
+        console.error("Error al guardar CDA:", err);
+        alert("Hubo un error al guardar la CDA: " + err.message);
+    }
   };
 
   const formatearFecha = (fechaISO) => {
+    if (!fechaISO) return "No definida";
     const fecha = new Date(fechaISO);
     const dia = fecha.getDate().toString().padStart(2, '0');
     const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
@@ -138,6 +159,7 @@ export default function CdaForm() {
     setCdaSeleccionada(cda);
     setVista("detalle");
     fetchCdaParticipantes(cda.id_cda);
+    loadParticipantesSeleccionados(cda.id_cda);
   };
 
   const volverALista = () => {
@@ -145,6 +167,7 @@ export default function CdaForm() {
     setCdaSeleccionada(null);
     setOpenCda(null);
     setParticipantesSeleccionados({});
+    fetchAllCdaData(); 
   };
 
   const handleToggleParticipantes = (id_cda) => {
@@ -153,72 +176,58 @@ export default function CdaForm() {
       setParticipantesSeleccionados({});
     } else {
       setOpenCda(id_cda);
-      // ORDEN CORREGIDO: Primero cargar seleccionados, luego obtener detalles
-      loadParticipantesSeleccionados(id_cda);
       fetchCdaParticipantes(id_cda);
+      loadParticipantesSeleccionados(id_cda);
     }
   };
 
-  // FUNCIÓN CORREGIDA PARA CARGAR PARTICIPANTES SELECCIONADOS
   const loadParticipantesSeleccionados = async (id_cda) => {
     try {
-      console.log("Cargando participantes seleccionados para CDA:", id_cda);
-      
-      const { data, error } = await supabase
-        .from('cda_participantes')
-        .select('id_participante')
-        .eq('id_cda', id_cda);
+        const { data, error } = await supabase
+            .from('cda_participantes')
+            .select('id_participante')
+            .eq('id_cda', id_cda);
+        
+        if (error) {
+            throw error;
+        }
 
-      if (error) {
-        console.error("Error al cargar participantes seleccionados:", error);
-        return;
-      }
-
-      console.log("Participantes ya registrados:", data);
-
-      // Crear objeto con participantes ya registrados marcados como true
-      const seleccionados = {};
-      if (data && data.length > 0) {
-        data.forEach(item => {
-          seleccionados[item.id_participante] = true;
-        });
-      }
-      
-      console.log("Estado de seleccionados a establecer:", seleccionados);
-      setParticipantesSeleccionados(seleccionados);
-
+        const seleccionados = data.reduce((acc, current) => {
+            acc[current.id_participante] = true;
+            return acc;
+        }, {});
+        setParticipantesSeleccionados(seleccionados);
     } catch (err) {
-      console.error("Error inesperado al cargar participantes seleccionados:", err);
+        console.error("Error al cargar participantes seleccionados:", err);
     }
   };
 
   const fetchCdaParticipantes = async (id_cda) => {
     try {
-      const { data, error } = await supabase
-        .from('cda_participantes')
-        .select(`
-          id_participante,
-          participantes (
-            id_participante,
-            nombre_participante,
-            edad,
-            sexo,
-            rol,
-            destacado
-          )
-        `)
-        .eq('id_cda', id_cda);
+        const { data, error } = await supabase
+            .from('cda_participantes')
+            .select(`
+                id_participante,
+                participantes (
+                    id_participante,
+                    nombre_participante,
+                    edad,
+                    sexo,
+                    rol,
+                    destacado
+                )
+            `)
+            .eq('id_cda', id_cda);
 
-      if (error) {
-        console.error("Error al obtener participantes de CDA:", error);
-        return;
-      }
+        if (error) {
+            throw error;
+        }
 
-      const participantesQueAsistieron = data.map(item => item.participantes);
-      setParticipantesDetallados(participantesQueAsistieron);
+        const participantesQueAsistieron = data.map(item => item.participantes);
+        setParticipantesDetallados(participantesQueAsistieron);
 
     } catch (err) {
-      console.error("Error inesperado al obtener participantes de CDA:", err);
+        console.error("Error al obtener participantes de CDA:", err);
     }
   };
 
@@ -229,83 +238,66 @@ export default function CdaForm() {
     }));
   };
 
-  // NUEVA FUNCIÓN SIMPLIFICADA PARA MANEJAR ASISTENCIAS
   const handleAgregarParticipantes = async (id_cda) => {
     try {
-      console.log("=== ACTUALIZANDO ASISTENCIAS ===");
-      console.log("CDA ID:", id_cda);
-      console.log("Participantes seleccionados:", participantesSeleccionados);
+        const participantesToAdd = participantes
+            .filter(p => participantesSeleccionados[p.id_participante])
+            .map(p => ({
+                id_cda: id_cda,
+                id_participante: p.id_participante,
+                asistio: true
+            }));
+        
+        const { error: deleteError } = await supabase
+            .from('cda_participantes')
+            .delete()
+            .eq('id_cda', id_cda);
 
-      // PASO 1: Eliminar TODAS las asistencias actuales
-      const { error: deleteError } = await supabase
-        .from('cda_participantes')
-        .delete()
-        .eq('id_cda', id_cda);
-
-      if (deleteError) {
-        console.error("Error eliminando asistencias:", deleteError);
-        throw deleteError;
-      }
-
-      // PASO 2: Insertar solo las asistencias seleccionadas
-      const participantesAInsertar = Object.keys(participantesSeleccionados)
-        .filter(id => participantesSeleccionados[id] === true)
-        .map(id => ({
-          id_cda: id_cda,
-          id_participante: parseInt(id, 10),
-          asistio: true
-        }));
-
-      console.log("Participantes a insertar:", participantesAInsertar);
-
-      if (participantesAInsertar.length > 0) {
-        const { error: insertError } = await supabase
-          .from('cda_participantes')
-          .insert(participantesAInsertar);
-
-        if (insertError) {
-          console.error("Error insertando asistencias:", insertError);
-          throw insertError;
+        if (deleteError) {
+            throw deleteError;
         }
 
-        alert(`${participantesAInsertar.length} asistencias guardadas correctamente`);
-      } else {
-        alert("Todas las asistencias han sido eliminadas");
-      }
+        if (participantesToAdd.length > 0) {
+            const { error: insertError } = await supabase
+                .from('cda_participantes') 
+                .insert(participantesToAdd);
+            
+            if (insertError) {
+                throw insertError;
+            }
+        }
 
-      // PASO 3: Actualizar la vista
-      await fetchCdaParticipantes(id_cda);
+        alert("Asistencia guardada correctamente");
+        await fetchCdaParticipantes(id_cda); 
+        await fetchAllCdaData();
+        setOpenCda(null);
+        setParticipantesSeleccionados({});
 
     } catch (err) {
-      console.error("Error actualizando asistencias:", err);
-      alert("Error al actualizar asistencias: " + err.message);
+        console.error("Error al guardar asistencias:", err);
+        alert("Hubo un error al guardar la asistencia: " + err.message);
     }
   };
-
+  
   const toggleDestacado = async (id_participante, destacadoActual) => {
     try {
       const { error } = await supabase
         .from('participantes')
         .update({ destacado: !destacadoActual })
         .eq('id_participante', id_participante);
-
+  
       if (error) {
         throw error;
       }
-
-      // Actualizar el estado local
-      setParticipantesDetallados(prev =>
-        prev.map(p =>
-          p.id_participante === id_participante
-            ? { ...p, destacado: !destacadoActual }
-            : p
+  
+      setParticipantesDetallados(prev => 
+        prev.map(p => 
+          p.id_participante === id_participante ? { ...p, destacado: !p.destacado } : p
         )
       );
-
-      alert(`Participante ${!destacadoActual ? 'agregado a' : 'removido de'} destacados`);
-    } catch (error) {
-      console.error("Error al actualizar destacado:", error);
-      alert("Error al actualizar el estado de destacado");
+    } catch (err) {
+      console.error("Error al actualizar destacado:", err);
+      alert("Hubo un error al actualizar el estado de destacado: " + err.message);
     }
   };
 
@@ -348,7 +340,7 @@ export default function CdaForm() {
 
     return participantesFiltrados;
   };
-
+  
   const containerStyle = {
     padding: "16px",
     maxWidth: "1200px",
@@ -503,7 +495,7 @@ export default function CdaForm() {
         <div style={cardStyle}>
           <h3 style={subHeaderStyle}>Listado de Casas de Adolescentes</h3>
           <div style={mobileGridStyle}>
-            {cdaList.map(cda => (
+            {cdaListWithCounts.map(cda => (
               <div key={cda.id_cda} style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -521,7 +513,7 @@ export default function CdaForm() {
                     {cda.siembra ? `Siembra: ${cda.siembra}` : "Sin siembra definida"}
                   </div>
                   <div style={{ fontSize: "12px", color: "#666" }}>
-                    Participantes: {cdaParticipantes[cda.id_cda]?.length || 0}
+                    Participantes: {cda.participantes_count || 0}
                   </div>
                 </div>
                 <button 
