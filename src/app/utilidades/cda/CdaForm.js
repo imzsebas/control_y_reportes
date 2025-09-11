@@ -35,7 +35,7 @@ export default function CdaForm() {
   const [editandoSiembra, setEditandoSiembra] = useState(false);
   const [nuevaSiembra, setNuevaSiembra] = useState("");
 
-  // Funciones para manejar siembra
+  // FUNCIONES CORREGIDAS PARA SIEMBRA
   const handleModificarSiembra = () => {
     setEditandoSiembra(true);
     setNuevaSiembra(cdaSeleccionada.siembra || "");
@@ -43,18 +43,29 @@ export default function CdaForm() {
 
   const handleGuardarSiembra = async () => {
     try {
-      // Aquí iría la lógica para guardar en la base de datos
-      // const { error } = await supabase.from('cda').update({ siembra: nuevaSiembra }).eq('id_cda', cdaSeleccionada.id_cda);
+      console.log("Guardando siembra:", nuevaSiembra, "para CDA:", cdaSeleccionada.id_cda);
+      
+      const { error } = await supabase
+        .from('cda')
+        .update({ siembra: parseInt(nuevaSiembra, 10) || null })
+        .eq('id_cda', cdaSeleccionada.id_cda);
+
+      if (error) {
+        console.error("Error al actualizar siembra:", error);
+        throw error;
+      }
 
       alert(`Siembra actualizada a: ${nuevaSiembra}`);
+      
+      // Actualizar estados locales
       setCdaList(prevList => prevList.map(cda =>
           cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
       ));
       setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
       setEditandoSiembra(false);
     } catch (error) {
-      console.error("Error al actualizar siembra:", error);
-      alert("Error al actualizar la siembra");
+      console.error("Error completo al actualizar siembra:", error);
+      alert("Error al actualizar la siembra: " + error.message);
     }
   };
 
@@ -142,17 +153,17 @@ export default function CdaForm() {
       setParticipantesSeleccionados({});
     } else {
       setOpenCda(id_cda);
-      fetchCdaParticipantes(id_cda);
+      // ORDEN CORREGIDO: Primero cargar seleccionados, luego obtener detalles
       loadParticipantesSeleccionados(id_cda);
+      fetchCdaParticipantes(id_cda);
     }
   };
 
+  // FUNCIÓN CORREGIDA PARA CARGAR PARTICIPANTES SELECCIONADOS
   const loadParticipantesSeleccionados = async (id_cda) => {
     try {
-      console.log("=== DEBUG: Cargando participantes seleccionados ===");
-      console.log("ID CDA:", id_cda);
+      console.log("Cargando participantes seleccionados para CDA:", id_cda);
       
-      // Obtener los participantes ya registrados para esta CDA
       const { data, error } = await supabase
         .from('cda_participantes')
         .select('id_participante')
@@ -181,10 +192,8 @@ export default function CdaForm() {
     }
   };
 
-  // FUNCIÓN CORREGIDA: Aquí estaba el error principal
   const fetchCdaParticipantes = async (id_cda) => {
     try {
-      // Consulta corregida - se eliminaron los comentarios que causaban el error de sintaxis
       const { data, error } = await supabase
         .from('cda_participantes')
         .select(`
@@ -205,7 +214,6 @@ export default function CdaForm() {
         return;
       }
 
-      // Mapear los datos correctamente
       const participantesQueAsistieron = data.map(item => item.participantes);
       setParticipantesDetallados(participantesQueAsistieron);
 
@@ -221,55 +229,56 @@ export default function CdaForm() {
     }));
   };
 
-  // FUNCIÓN CORREGIDA: Manejo de duplicados
+  // NUEVA FUNCIÓN SIMPLIFICADA PARA MANEJAR ASISTENCIAS
   const handleAgregarParticipantes = async (id_cda) => {
     try {
-      // Obtener participantes ya registrados para evitar duplicados
-      const { data: existentes, error: errorExistentes } = await supabase
+      console.log("=== ACTUALIZANDO ASISTENCIAS ===");
+      console.log("CDA ID:", id_cda);
+      console.log("Participantes seleccionados:", participantesSeleccionados);
+
+      // PASO 1: Eliminar TODAS las asistencias actuales
+      const { error: deleteError } = await supabase
         .from('cda_participantes')
-        .select('id_participante')
+        .delete()
         .eq('id_cda', id_cda);
 
-      if (errorExistentes) {
-        throw errorExistentes;
+      if (deleteError) {
+        console.error("Error eliminando asistencias:", deleteError);
+        throw deleteError;
       }
 
-      const idsExistentes = existentes.map(item => item.id_participante);
-
-      // Filtrar solo participantes nuevos (no duplicados)
-      const participantesToAdd = participantes
-        .filter(p => 
-          participantesSeleccionados[p.id_participante] && 
-          !idsExistentes.includes(p.id_participante)
-        )
-        .map(p => ({
+      // PASO 2: Insertar solo las asistencias seleccionadas
+      const participantesAInsertar = Object.keys(participantesSeleccionados)
+        .filter(id => participantesSeleccionados[id] === true)
+        .map(id => ({
           id_cda: id_cda,
-          id_participante: p.id_participante,
+          id_participante: parseInt(id, 10),
           asistio: true
         }));
 
-      if (participantesToAdd.length === 0) {
-        alert("No hay participantes nuevos seleccionados para guardar.");
-        return;
+      console.log("Participantes a insertar:", participantesAInsertar);
+
+      if (participantesAInsertar.length > 0) {
+        const { error: insertError } = await supabase
+          .from('cda_participantes')
+          .insert(participantesAInsertar);
+
+        if (insertError) {
+          console.error("Error insertando asistencias:", insertError);
+          throw insertError;
+        }
+
+        alert(`${participantesAInsertar.length} asistencias guardadas correctamente`);
+      } else {
+        alert("Todas las asistencias han sido eliminadas");
       }
 
-      // Insertar solo los participantes nuevos
-      const { error } = await supabase
-        .from('cda_participantes') 
-        .insert(participantesToAdd);
-
-      if (error) {
-        throw error;
-      }
-
-      alert(`${participantesToAdd.length} asistencia(s) guardada(s) correctamente`);
-      await fetchCdaParticipantes(id_cda); 
-      setOpenCda(null);
-      setParticipantesSeleccionados({});
+      // PASO 3: Actualizar la vista
+      await fetchCdaParticipantes(id_cda);
 
     } catch (err) {
-      console.error("Error al guardar asistencias:", err);
-      alert("Hubo un error al guardar la asistencia: " + err.message);
+      console.error("Error actualizando asistencias:", err);
+      alert("Error al actualizar asistencias: " + err.message);
     }
   };
 
