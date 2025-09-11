@@ -149,6 +149,9 @@ export default function CdaForm() {
 
   const loadParticipantesSeleccionados = async (id_cda) => {
     try {
+      console.log("=== DEBUG: Cargando participantes seleccionados ===");
+      console.log("ID CDA:", id_cda);
+      
       // Obtener los participantes ya registrados para esta CDA
       const { data, error } = await supabase
         .from('cda_participantes')
@@ -160,13 +163,19 @@ export default function CdaForm() {
         return;
       }
 
-      // Crear objeto con participantes ya registrados
+      console.log("Participantes ya registrados:", data);
+
+      // Crear objeto con participantes ya registrados marcados como true
       const seleccionados = {};
-      data.forEach(item => {
-        seleccionados[item.id_participante] = true;
-      });
+      if (data && data.length > 0) {
+        data.forEach(item => {
+          seleccionados[item.id_participante] = true;
+        });
+      }
       
+      console.log("Estado de seleccionados a establecer:", seleccionados);
       setParticipantesSeleccionados(seleccionados);
+
     } catch (err) {
       console.error("Error inesperado al cargar participantes seleccionados:", err);
     }
