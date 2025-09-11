@@ -31,26 +31,31 @@ export default function CdaForm() {
   const [ordenarPor, setOrdenarPor] = useState("nombre");
   const [ordenDireccion, setOrdenDireccion] = useState("asc");
 
-  // 🐛 **ESTOS SON LOS ESTADOS QUE RESUELVEN EL ERROR**
+  // Estados para editar siembra
   const [editandoSiembra, setEditandoSiembra] = useState(false);
   const [nuevaSiembra, setNuevaSiembra] = useState("");
 
-  // 🐛 **ESTAS SON LAS FUNCIONES QUE RESUELVEN EL ERROR**
+  // Funciones para manejar siembra
   const handleModificarSiembra = () => {
     setEditandoSiembra(true);
     setNuevaSiembra(cdaSeleccionada.siembra || "");
   };
 
   const handleGuardarSiembra = async () => {
-    // Aquí iría la lógica para guardar en la base de datos (usando Supabase en tu caso real)
-    // const { error } = await supabase.from('cda').upsert({ id_cda: cdaSeleccionada.id_cda, siembra: nuevaSiembra });
+    try {
+      // Aquí iría la lógica para guardar en la base de datos
+      // const { error } = await supabase.from('cda').update({ siembra: nuevaSiembra }).eq('id_cda', cdaSeleccionada.id_cda);
 
-    alert(`Siembra actualizada a: ${nuevaSiembra}`);
-    setCdaList(prevList => prevList.map(cda =>
-        cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
-    ));
-    setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
-    setEditandoSiembra(false);
+      alert(`Siembra actualizada a: ${nuevaSiembra}`);
+      setCdaList(prevList => prevList.map(cda =>
+          cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
+      ));
+      setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
+      setEditandoSiembra(false);
+    } catch (error) {
+      console.error("Error al actualizar siembra:", error);
+      alert("Error al actualizar la siembra");
+    }
   };
 
   const handleCancelarSiembra = () => {
@@ -143,39 +148,62 @@ export default function CdaForm() {
   };
 
   const loadParticipantesSeleccionados = async (id_cda) => {
-    setParticipantesSeleccionados({ 1: true, 2: true });
+    try {
+      // Obtener los participantes ya registrados para esta CDA
+      const { data, error } = await supabase
+        .from('cda_participantes')
+        .select('id_participante')
+        .eq('id_cda', id_cda);
+
+      if (error) {
+        console.error("Error al cargar participantes seleccionados:", error);
+        return;
+      }
+
+      // Crear objeto con participantes ya registrados
+      const seleccionados = {};
+      data.forEach(item => {
+        seleccionados[item.id_participante] = true;
+      });
+      
+      setParticipantesSeleccionados(seleccionados);
+    } catch (err) {
+      console.error("Error inesperado al cargar participantes seleccionados:", err);
+    }
   };
 
-const fetchCdaParticipantes = async (id_cda) => {
+  // FUNCIÓN CORREGIDA: Aquí estaba el error principal
+  const fetchCdaParticipantes = async (id_cda) => {
     try {
-        // Se obtienen los participantes a través de la tabla cda_participantes
-        const { data, error } = await supabase
-            .from('cda_participantes')
-            .select(`
-                id_participante, // Usamos 'id_participante' como en tu tabla
-                participantes (
-                    id_participante,
-                    nombre_participante,
-                    edad,
-                    sexo,
-                    rol,
-                    destacado
-                )
-            `)
-            .eq('id_cda', id_cda); // Usamos 'id_cda' como en tu tabla
+      // Consulta corregida - se eliminaron los comentarios que causaban el error de sintaxis
+      const { data, error } = await supabase
+        .from('cda_participantes')
+        .select(`
+          id_participante,
+          participantes (
+            id_participante,
+            nombre_participante,
+            edad,
+            sexo,
+            rol,
+            destacado
+          )
+        `)
+        .eq('id_cda', id_cda);
 
-        if (error) {
-            console.error("Error al obtener participantes de CDA:", error);
-            return;
-        }
+      if (error) {
+        console.error("Error al obtener participantes de CDA:", error);
+        return;
+      }
 
-        const participantesQueAsistieron = data.map(item => item.participantes);
-        setParticipantesDetallados(participantesQueAsistieron);
+      // Mapear los datos correctamente
+      const participantesQueAsistieron = data.map(item => item.participantes);
+      setParticipantesDetallados(participantesQueAsistieron);
 
     } catch (err) {
-        console.error("Error inesperado al obtener participantes de CDA:", err);
+      console.error("Error inesperado al obtener participantes de CDA:", err);
     }
-};
+  };
 
   const handleParticipanteCheck = (id) => {
     setParticipantesSeleccionados(prev => ({
@@ -184,43 +212,83 @@ const fetchCdaParticipantes = async (id_cda) => {
     }));
   };
 
-const handleAgregarParticipantes = async (id_cda) => {
+  // FUNCIÓN CORREGIDA: Manejo de duplicados
+  const handleAgregarParticipantes = async (id_cda) => {
     try {
-        const participantesToAdd = participantes
-            .filter(p => participantesSeleccionados[p.id_participante])
-            .map(p => ({
-                id_cda: id_cda, // Usamos 'id_cda' como en tu tabla
-                id_participante: p.id_participante, // Usamos 'id_participante' como en tu tabla
-                asistio: true // Agregamos la columna 'asistio' con valor true
-            }));
+      // Obtener participantes ya registrados para evitar duplicados
+      const { data: existentes, error: errorExistentes } = await supabase
+        .from('cda_participantes')
+        .select('id_participante')
+        .eq('id_cda', id_cda);
 
-        if (participantesToAdd.length === 0) {
-            alert("No hay participantes seleccionados para guardar.");
-            return;
-        }
-        
-        // Se inserta en la tabla cda_participantes
-        const { error } = await supabase
-            .from('cda_participantes') 
-            .insert(participantesToAdd);
+      if (errorExistentes) {
+        throw errorExistentes;
+      }
 
-        if (error) {
-            throw error;
-        }
+      const idsExistentes = existentes.map(item => item.id_participante);
 
-        alert("Asistencia guardada correctamente");
-        await fetchCdaParticipantes(id_cda); 
-        setOpenCda(null);
-        setParticipantesSeleccionados({});
+      // Filtrar solo participantes nuevos (no duplicados)
+      const participantesToAdd = participantes
+        .filter(p => 
+          participantesSeleccionados[p.id_participante] && 
+          !idsExistentes.includes(p.id_participante)
+        )
+        .map(p => ({
+          id_cda: id_cda,
+          id_participante: p.id_participante,
+          asistio: true
+        }));
+
+      if (participantesToAdd.length === 0) {
+        alert("No hay participantes nuevos seleccionados para guardar.");
+        return;
+      }
+
+      // Insertar solo los participantes nuevos
+      const { error } = await supabase
+        .from('cda_participantes') 
+        .insert(participantesToAdd);
+
+      if (error) {
+        throw error;
+      }
+
+      alert(`${participantesToAdd.length} asistencia(s) guardada(s) correctamente`);
+      await fetchCdaParticipantes(id_cda); 
+      setOpenCda(null);
+      setParticipantesSeleccionados({});
 
     } catch (err) {
-        console.error("Error al guardar asistencias:", err);
-        alert("Hubo un error al guardar la asistencia: " + err.message);
+      console.error("Error al guardar asistencias:", err);
+      alert("Hubo un error al guardar la asistencia: " + err.message);
     }
-};
+  };
 
   const toggleDestacado = async (id_participante, destacadoActual) => {
-    alert(`Participante ${destacadoActual ? 'removido de' : 'agregado a'} destacados`);
+    try {
+      const { error } = await supabase
+        .from('participantes')
+        .update({ destacado: !destacadoActual })
+        .eq('id_participante', id_participante);
+
+      if (error) {
+        throw error;
+      }
+
+      // Actualizar el estado local
+      setParticipantesDetallados(prev =>
+        prev.map(p =>
+          p.id_participante === id_participante
+            ? { ...p, destacado: !destacadoActual }
+            : p
+        )
+      );
+
+      alert(`Participante ${!destacadoActual ? 'agregado a' : 'removido de'} destacados`);
+    } catch (error) {
+      console.error("Error al actualizar destacado:", error);
+      alert("Error al actualizar el estado de destacado");
+    }
   };
 
   const getParticipantesFiltradosYOrdenados = () => {
