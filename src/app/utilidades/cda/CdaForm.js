@@ -1,24 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-
-// Simulando supabase para el ejemplo
-const mockSupabase = {
-  from: (table) => ({
-    select: (fields) => ({
-      order: (field, options) => ({ data: [], error: null }),
-      eq: (field, value) => ({ data: [], error: null })
-    }),
-    insert: (data) => ({
-      select: () => ({
-        single: () => ({ data: { id_cda: 1, ...data[0] }, error: null })
-      })
-    }),
-    update: (data) => ({
-      eq: (field, value) => ({ error: null })
-    }),
-    upsert: (data, options) => ({ error: null })
-  })
-};
+import { supabase } from "@/lib/supabaseClient";
 
 export default function CdaForm() {
   const initialForm = {
@@ -32,12 +14,7 @@ export default function CdaForm() {
     { id_cda: 1, fecha_inicio: "2024-01-15T10:00", fecha_termino: "2024-01-15T18:00", siembra: 25 },
     { id_cda: 2, fecha_inicio: "2024-02-20T09:30", fecha_termino: null, siembra: 30 }
   ]);
-  const [participantes, setParticipantes] = useState([
-    { id_participante: 1, nombre_participante: "Juan Pérez", edad: 16, sexo: "M", rol: "Tropa", destacado: false },
-    { id_participante: 2, nombre_participante: "María González", edad: 17, sexo: "F", rol: "Capitan", destacado: true },
-    { id_participante: 3, nombre_participante: "Carlos López", edad: 15, sexo: "M", rol: "Valiente de David", destacado: false },
-    { id_participante: 4, nombre_participante: "Ana Rodríguez", edad: 16, sexo: "F", rol: "Tropa", destacado: false }
-  ]);
+  const [participantes, setParticipantes] = useState([]); // Ahora inicia vacío
   const [openCda, setOpenCda] = useState(null);
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState({});
   const [cdaParticipantes, setCdaParticipantes] = useState({});
@@ -54,44 +31,30 @@ export default function CdaForm() {
   const [ordenarPor, setOrdenarPor] = useState("nombre");
   const [ordenDireccion, setOrdenDireccion] = useState("asc");
 
-  // --- CAMBIOS AÑADIDOS ---
-  // Añado estados para la edición de siembra
   const [editandoSiembra, setEditandoSiembra] = useState(false);
   const [nuevaSiembra, setNuevaSiembra] = useState("");
 
-  // Añado funciones para manejar la lógica de edición
-  const handleModificarSiembra = () => {
-    setEditandoSiembra(true);
-    setNuevaSiembra(cdaSeleccionada.siembra || ""); // Usa el valor actual, o un string vacío si es nulo
-  };
-
-  const handleGuardarSiembra = async () => {
-    // Aquí iría la lógica para guardar en la base de datos (usando Supabase en tu caso real)
-    // El 'upsert' es la mejor opción en Supabase para insertar o actualizar
-    // const { error } = await supabase.from('cda').upsert({ id_cda: cdaSeleccionada.id_cda, siembra: nuevaSiembra });
-
-    // Lógica simulada:
-    alert(`Siembra actualizada a: ${nuevaSiembra}`);
-    setCdaList(prevList => prevList.map(cda =>
-        cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
-    ));
-    setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
-    setEditandoSiembra(false);
-  };
-
-  const handleCancelarSiembra = () => {
-    setEditandoSiembra(false);
-    setNuevaSiembra("");
-  };
-  // --- FIN DE CAMBIOS ---
-
-  // Funciones simuladas para el ejemplo
+  // Funciones para la interacción con la base de datos
   const fetchCda = async () => {
-    // Simulado - en producción usarías supabase
+    // Aquí iría la lógica para obtener las CDA de tu base de datos
   };
 
+  // 🔄 **NUEVA FUNCIÓN PARA OBTENER PARTICIPANTES DINÁMICAMENTE**
   const fetchParticipantes = async () => {
-    // Simulado - en producción usarías supabase
+    try {
+      const { data, error } = await supabase
+        .from('participantes')
+        .select('*')
+        .order('nombre_participante', { ascending: true });
+        
+      if (error) {
+        console.error("Error al obtener participantes:", error);
+        return;
+      }
+      setParticipantes(data);
+    } catch (err) {
+      console.error("Error inesperado al obtener participantes:", err);
+    }
   };
 
   const fetchAllCdaParticipantes = async () => {
@@ -109,7 +72,7 @@ export default function CdaForm() {
 
   useEffect(() => {
     fetchCda();
-    fetchParticipantes();
+    fetchParticipantes(); // 📥 Llama a la nueva función
     fetchAllCdaParticipantes();
   }, []);
 
@@ -224,7 +187,7 @@ export default function CdaForm() {
     return participantesFiltrados;
   };
 
-  // Estilos responsivos (sin cambios aquí)
+  // Estilos
   const containerStyle = {
     padding: "16px",
     maxWidth: "1200px",
@@ -311,7 +274,7 @@ export default function CdaForm() {
     width: "100%",
     borderCollapse: "collapse",
     backgroundColor: "white",
-    minWidth: "600px" // Asegura que la tabla no se comprima demasiado
+    minWidth: "600px"
   };
 
   const headerStyle = {
@@ -330,7 +293,6 @@ export default function CdaForm() {
     marginBottom: "16px"
   };
 
-  // VISTA DE LISTA
   if (vista === "lista") {
     return (
       <div style={containerStyle}>
@@ -415,7 +377,6 @@ export default function CdaForm() {
     );
   }
 
-  // VISTA DE DETALLE
   if (vista === "detalle" && cdaSeleccionada) {
     return (
       <div style={containerStyle}>
@@ -585,7 +546,6 @@ export default function CdaForm() {
           
           {participantesDetallados.length > 0 ? (
             <div>
-              {/* Controles de filtros */}
               <div style={{
                 display: "grid",
                 gap: "12px",
@@ -666,7 +626,6 @@ export default function CdaForm() {
                 </div>
               </div>
 
-              {/* Tabla responsiva */}
               <div style={tableContainerStyle}>
                 <table style={tableStyle}>
                   <thead>
@@ -760,7 +719,6 @@ export default function CdaForm() {
                   </tbody>
                 </table>
               </div>
-
               <div style={{
                 marginTop: "12px",
                 fontSize: "14px",
