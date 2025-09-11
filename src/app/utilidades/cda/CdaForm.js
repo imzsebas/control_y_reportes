@@ -19,6 +19,14 @@ export default function CdaForm() {
   // Nuevos estados para manejo de vistas
   const [vista, setVista] = useState("lista"); // "lista" o "detalle"
   const [cdaSeleccionada, setCdaSeleccionada] = useState(null);
+  
+  // Estados para la tabla de participantes
+  const [participantesDetallados, setParticipantesDetallados] = useState([]);
+  const [filtroNombre, setFiltroNombre] = useState("");
+  const [filtroSexo, setFiltroSexo] = useState("");
+  const [filtroRol, setFiltroRol] = useState("");
+  const [ordenarPor, setOrdenarPor] = useState("nombre"); // "nombre", "edad", "sexo", "rol"
+  const [ordenDireccion, setOrdenDireccion] = useState("asc"); // "asc", "desc"
 
   // Cargar CDA existentes
   const fetchCda = async () => {
@@ -157,23 +165,46 @@ export default function CdaForm() {
     setParticipantesSeleccionados(seleccionados);
   };
 
-  // Cargar participantes confirmados para un CDA específico
+  // Cargar participantes confirmados para un CDA específico con datos detallados
   const fetchCdaParticipantes = async (id_cda) => {
     const { data, error } = await supabase
       .from("cda_participantes")
-      .select("id_participante, asistio, participantes(nombre_participante, edad)")
+      .select(`
+        id_participante, 
+        asistio, 
+        participantes(
+          id_participante,
+          nombre_participante, 
+          edad, 
+          sexo, 
+          rol, 
+          destacado
+        )
+      `)
       .eq("id_cda", id_cda);
 
     if (error) return console.error(error);
 
+    // Filtrar solo los que asistieron y formatear datos
+    const participantesQueAsistieron = data
+      .filter(d => d.asistio)
+      .map(d => ({
+        id_participante: d.participantes.id_participante,
+        nombre_participante: d.participantes.nombre_participante,
+        edad: d.participantes.edad,
+        sexo: d.participantes.sexo,
+        rol: d.participantes.rol,
+        destacado: d.participantes.destacado
+      }));
+
+    // Para la lista simple (mantener compatibilidad)
     setCdaParticipantes(prev => ({
       ...prev,
-      [id_cda]: data.filter(d => d.asistio).map(d => ({
-        id_participante: d.id_participante,
-        nombre_participante: d.participantes.nombre_participante,
-        edad: d.participantes.edad
-      }))
+      [id_cda]: participantesQueAsistieron
     }));
+
+    // Para la tabla detallada
+    setParticipantesDetallados(participantesQueAsistieron);
   };
 
   const handleParticipanteCheck = (id) => {
@@ -204,6 +235,67 @@ export default function CdaForm() {
       console.error(err);
       alert("Error guardando asistencia: " + (err.message || JSON.stringify(err)));
     }
+  };
+
+  // Función para actualizar el estado destacado de un participante
+  const toggleDestacado = async (id_participante, destacadoActual) => {
+    try {
+      const { error } = await supabase
+        .from("participantes")
+        .update({ destacado: !destacadoActual })
+        .eq("id_participante", id_participante);
+
+      if (error) throw error;
+
+      // Recargar los datos para mostrar el cambio
+      fetchCdaParticipantes(cdaSeleccionada.id_cda);
+      fetchAllCdaParticipantes();
+    } catch (err) {
+      console.error(err);
+      alert("Error actualizando destacado: " + (err.message || JSON.stringify(err)));
+    }
+  };
+
+  // Función para filtrar y ordenar participantes
+  const getParticipantesFiltradosYOrdenados = () => {
+    let participantesFiltrados = participantesDetallados.filter(p => {
+      const cumpleNombre = p.nombre_participante.toLowerCase().includes(filtroNombre.toLowerCase());
+      const cumpleSexo = filtroSexo === "" || p.sexo === filtroSexo;
+      const cumpleRol = filtroRol === "" || p.rol === filtroRol;
+      return cumpleNombre && cumpleSexo && cumpleRol;
+    });
+
+    // Ordenar
+    participantesFiltrados.sort((a, b) => {
+      let valorA, valorB;
+      
+      switch(ordenarPor) {
+        case "nombre":
+          valorA = a.nombre_participante.toLowerCase();
+          valorB = b.nombre_participante.toLowerCase();
+          break;
+        case "edad":
+          valorA = a.edad;
+          valorB = b.edad;
+          break;
+        case "sexo":
+          valorA = a.sexo;
+          valorB = b.sexo;
+          break;
+        case "rol":
+          valorA = a.rol;
+          valorB = b.rol;
+          break;
+        default:
+          return 0;
+      }
+
+      if (valorA < valorB) return ordenDireccion === "asc" ? -1 : 1;
+      if (valorA > valorB) return ordenDireccion === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return participantesFiltrados;
   };
 
   // VISTA DE LISTA
@@ -319,12 +411,173 @@ export default function CdaForm() {
 
         <div style={{ border: "1px solid #ddd", padding: 16, borderRadius: 8 }}>
           <h4>Participantes que asistieron:</h4>
-          {cdaParticipantes[cdaSeleccionada.id_cda]?.length > 0 ? (
-            cdaParticipantes[cdaSeleccionada.id_cda].map(p => (
-              <div key={p.id_participante} style={{ padding: "4px 0" }}>
-                {p.nombre_participante} ({p.edad} años)
+          
+          {participantesDetallados.length > 0 ? (
+            <div>
+              {/* Controles de filtros y ordenamiento */}
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "1fr 1fr 1fr 1fr", 
+                gap: "12px", 
+                marginBottom: "16px",
+                padding: "12px",
+                backgroundColor: "#f8f9fa",
+                borderRadius: "6px"
+              }}>
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+                    Buscar nombre:
+                  </label>
+                  <input
+                    type="text"
+                    value={filtroNombre}
+                    onChange={(e) => setFiltroNombre(e.target.value)}
+                    placeholder="Escribir nombre..."
+                    style={{ 
+                      width: "100%", 
+                      padding: "6px", 
+                      borderRadius: "4px", 
+                      border: "1px solid #ccc",
+                      fontSize: "14px"
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+                    Filtrar por sexo:
+                  </label>
+                  <select
+                    value={filtroSexo}
+                    onChange={(e) => setFiltroSexo(e.target.value)}
+                    style={{ 
+                      width: "100%", 
+                      padding: "6px", 
+                      borderRadius: "4px", 
+                      border: "1px solid #ccc",
+                      fontSize: "14px"
+                    }}
+                  >
+                    <option value="">Todos</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+                    Filtrar por rol:
+                  </label>
+                  <select
+                    value={filtroRol}
+                    onChange={(e) => setFiltroRol(e.target.value)}
+                    style={{ 
+                      width: "100%", 
+                      padding: "6px", 
+                      borderRadius: "4px", 
+                      border: "1px solid #ccc",
+                      fontSize: "14px"
+                    }}
+                  >
+                    <option value="">Todos</option>
+                    <option value="Tropa">Tropa</option>
+                    <option value="Capitan">Capitan</option>
+                    <option value="Valiente de David">Valiente de David</option>
+                    <option value="Intendente">Intendente</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+                    Ordenar por:
+                  </label>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <select
+                      value={ordenarPor}
+                      onChange={(e) => setOrdenarPor(e.target.value)}
+                      style={{ 
+                        flex: 1, 
+                        padding: "6px", 
+                        borderRadius: "4px", 
+                        border: "1px solid #ccc",
+                        fontSize: "14px"
+                      }}
+                    >
+                      <option value="nombre">Nombre</option>
+                      <option value="edad">Edad</option>
+                      <option value="sexo">Sexo</option>
+                      <option value="rol">Rol</option>
+                    </select>
+                    <button
+                      onClick={() => setOrdenDireccion(ordenDireccion === "asc" ? "desc" : "asc")}
+                      style={{
+                        padding: "6px 8px",
+                        borderRadius: "4px",
+                        border: "1px solid #ccc",
+                        backgroundColor: "#fff",
+                        cursor: "pointer",
+                        fontSize: "12px"
+                      }}
+                      title={`Ordenar ${ordenDireccion === "asc" ? "descendente" : "ascendente"}`}
+                    >
+                      {ordenDireccion === "asc" ? "↑" : "↓"}
+                    </button>
+                  </div>
+                </div>
               </div>
-            ))
+
+              {/* Tabla de participantes */}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ 
+                  width: "100%", 
+                  borderCollapse: "collapse",
+                  backgroundColor: "white",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                }}>
+                  <thead>
+                    <tr style={{ backgroundColor: "#f8f9fa" }}>
+                      <th style={tableHeaderStyle}>⭐</th>
+                      <th style={tableHeaderStyle}>Nombre</th>
+                      <th style={tableHeaderStyle}>Edad</th>
+                      <th style={tableHeaderStyle}>Sexo</th>
+                      <th style={tableHeaderStyle}>Rol</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getParticipantesFiltradosYOrdenados().map((p, index) => (
+                      <tr key={p.id_participante} style={{ 
+                        backgroundColor: index % 2 === 0 ? "#ffffff" : "#f8f9fa",
+                        borderBottom: "1px solid #dee2e6"
+                      }}>
+                        <td style={tableCellStyle}>
+                          <button
+                            onClick={() => toggleDestacado(p.id_participante, p.destacado)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: "18px",
+                              padding: "4px"
+                            }}
+                            title={p.destacado ? "Quitar destacado" : "Marcar como destacado"}
+                          >
+                            {p.destacado ? "⭐" : "☆"}
+                          </button>
+                        </td>
+                        <td style={tableCellStyle}>{p.nombre_participante}</td>
+                        <td style={tableCellStyle}>{p.edad}</td>
+                        <td style={tableCellStyle}>{p.sexo === "M" ? "Masculino" : "Femenino"}</td>
+                        <td style={tableCellStyle}>{p.rol}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginTop: "12px", fontSize: "14px", color: "#666" }}>
+                Mostrando {getParticipantesFiltradosYOrdenados().length} de {participantesDetallados.length} participantes
+              </div>
+            </div>
           ) : (
             <p style={{ color: "#666" }}>Ningún participante registrado aún</p>
           )}
