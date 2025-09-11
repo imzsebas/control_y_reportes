@@ -679,7 +679,7 @@ export default function CdaForm() {
               onClick={() => handleAgregarParticipantes(cdaSeleccionada.id_cda)}
               style={buttonSuccess}
             >
-              Guardar asistencias
+              Actualizar asistencias
             </button>
           </div>
         )}
