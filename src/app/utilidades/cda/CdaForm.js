@@ -14,7 +14,7 @@ export default function CdaForm() {
     { id_cda: 1, fecha_inicio: "2024-01-15T10:00", fecha_termino: "2024-01-15T18:00", siembra: 25 },
     { id_cda: 2, fecha_inicio: "2024-02-20T09:30", fecha_termino: null, siembra: 30 }
   ]);
-  const [participantes, setParticipantes] = useState([]); // Ahora inicia vacío
+  const [participantes, setParticipantes] = useState([]);
   const [openCda, setOpenCda] = useState(null);
   const [participantesSeleccionados, setParticipantesSeleccionados] = useState({});
   const [cdaParticipantes, setCdaParticipantes] = useState({});
@@ -31,15 +31,37 @@ export default function CdaForm() {
   const [ordenarPor, setOrdenarPor] = useState("nombre");
   const [ordenDireccion, setOrdenDireccion] = useState("asc");
 
+  // 🐛 **ESTOS SON LOS ESTADOS QUE RESUELVEN EL ERROR**
   const [editandoSiembra, setEditandoSiembra] = useState(false);
   const [nuevaSiembra, setNuevaSiembra] = useState("");
 
-  // Funciones para la interacción con la base de datos
+  // 🐛 **ESTAS SON LAS FUNCIONES QUE RESUELVEN EL ERROR**
+  const handleModificarSiembra = () => {
+    setEditandoSiembra(true);
+    setNuevaSiembra(cdaSeleccionada.siembra || "");
+  };
+
+  const handleGuardarSiembra = async () => {
+    // Aquí iría la lógica para guardar en la base de datos (usando Supabase en tu caso real)
+    // const { error } = await supabase.from('cda').upsert({ id_cda: cdaSeleccionada.id_cda, siembra: nuevaSiembra });
+
+    alert(`Siembra actualizada a: ${nuevaSiembra}`);
+    setCdaList(prevList => prevList.map(cda =>
+        cda.id_cda === cdaSeleccionada.id_cda ? { ...cda, siembra: parseInt(nuevaSiembra, 10) } : cda
+    ));
+    setCdaSeleccionada(prev => ({ ...prev, siembra: parseInt(nuevaSiembra, 10) }));
+    setEditandoSiembra(false);
+  };
+
+  const handleCancelarSiembra = () => {
+    setEditandoSiembra(false);
+    setNuevaSiembra("");
+  };
+
   const fetchCda = async () => {
     // Aquí iría la lógica para obtener las CDA de tu base de datos
   };
 
-  // 🔄 **NUEVA FUNCIÓN PARA OBTENER PARTICIPANTES DINÁMICAMENTE**
   const fetchParticipantes = async () => {
     try {
       const { data, error } = await supabase
@@ -58,7 +80,6 @@ export default function CdaForm() {
   };
 
   const fetchAllCdaParticipantes = async () => {
-    // Simulado - en producción usarías supabase
     setCdaParticipantes({
       1: [
         { id_participante: 1, nombre_participante: "Juan Pérez", edad: 16, sexo: "M", rol: "Tropa", destacado: false },
@@ -72,7 +93,7 @@ export default function CdaForm() {
 
   useEffect(() => {
     fetchCda();
-    fetchParticipantes(); // 📥 Llama a la nueva función
+    fetchParticipantes();
     fetchAllCdaParticipantes();
   }, []);
 
@@ -85,7 +106,6 @@ export default function CdaForm() {
     e.preventDefault();
     if (!formData.fecha_inicio) return alert("Fecha de inicio requerida");
 
-    // Simulado - en producción usarías supabase
     alert("CDA agregado");
     setFormData(initialForm);
   };
@@ -123,7 +143,6 @@ export default function CdaForm() {
   };
 
   const loadParticipantesSeleccionados = async (id_cda) => {
-    // Simulado
     setParticipantesSeleccionados({ 1: true, 2: true });
   };
 
@@ -187,7 +206,6 @@ export default function CdaForm() {
     return participantesFiltrados;
   };
 
-  // Estilos
   const containerStyle = {
     padding: "16px",
     maxWidth: "1200px",
