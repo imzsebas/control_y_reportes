@@ -752,7 +752,7 @@ export default function CdaForm() {
             }}>
               <p>📋 Ningún participante registrado aún</p>
               <p style={{ fontSize: "14px", marginTop: "8px" }}>
-                Utiliza "Gestionar asistencias" para agregar participantes a esta CDA
+                Utiliza 'Gestionar asistencias' para agregar participantes a esta CDA
               </p>
             </div>
           )}
