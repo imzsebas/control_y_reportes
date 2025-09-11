@@ -1,10 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ParticipantesForm from "./participantes/page";
 import CdaForm from "./CdaForm";
 
 export default function CdaPage() {
   const [vista, setVista] = useState("inicio");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsMenuOpen(false);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
   
   // Estilos consistentes con CdaForm.js
   const headerStyle = {
@@ -14,7 +32,8 @@ export default function CdaPage() {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    position: "relative" // Añadido para posicionar el menú desplegable
   };
 
   const navButtonStyle = {
@@ -39,19 +58,49 @@ export default function CdaPage() {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
   };
 
+  const hamburgerStyle = {
+    fontSize: "24px",
+    cursor: "pointer",
+    display: isMobile ? "block" : "none" // Muestra solo en móvil
+  };
+  
+  const navContainerStyle = {
+    display: isMobile ? (isMenuOpen ? "flex" : "none") : "flex", // Muestra en móvil solo si está abierto
+    flexDirection: isMobile ? "column" : "row",
+    position: isMobile ? "absolute" : "static",
+    top: isMobile ? "100%" : "auto",
+    right: isMobile ? "0" : "auto",
+    backgroundColor: isMobile ? "#212529" : "transparent",
+    padding: isMobile ? "16px" : "0",
+    borderRadius: isMobile ? "0 0 8px 8px" : "0",
+    boxShadow: isMobile ? "0 2px 8px rgba(0,0,0,0.2)" : "none",
+    gap: isMobile ? "12px" : "8px",
+    width: isMobile ? "200px" : "auto",
+    zIndex: 10
+  };
+
   return (
     <div>
       <header style={headerStyle}>
         <h2 style={{ fontWeight: "bold" }}>Casa de Adolescentes</h2>
-        <nav style={{ display: "flex", gap: "8px" }}>
+        <button onClick={toggleMenu} style={hamburgerStyle}>
+          &#9776;
+        </button>
+        <nav style={navContainerStyle}>
           <button
-            onClick={() => setVista("participante")}
+            onClick={() => {
+              setVista("participante");
+              setIsMenuOpen(false);
+            }}
             style={navButtonStyle}
           >
             Agregar Participante
           </button>
           <button
-            onClick={() => setVista("cda")}
+            onClick={() => {
+              setVista("cda");
+              setIsMenuOpen(false);
+            }}
             style={navButtonGreen}
           >
             Agregar / Ver Casas de Adolescentes
