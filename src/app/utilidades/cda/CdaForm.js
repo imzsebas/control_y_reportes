@@ -208,7 +208,7 @@ export default function CdaForm() {
             <div style={{ marginTop: 8 }}>
               <h5>Asistieron:</h5>
               {cdaParticipantes[cda.id_cda]?.length > 0
-                ? cdaParticipantes[cda.id_cda].map(p => <div key={p.id_participante}>{p.nombre_participante}</div>)
+                ? cdaParticipantes[cda.id_cda].map(p => <div key={p.id_participante}>{p.nombre_participante} ({p.edad} años)</div>)
                 : <p>Ninguno aún</p>}
             </div>
           )}
