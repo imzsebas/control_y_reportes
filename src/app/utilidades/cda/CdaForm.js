@@ -148,11 +148,11 @@ export default function CdaForm() {
 
 const fetchCdaParticipantes = async (id_cda) => {
     try {
-        // 🚨 Se obtienen los participantes a través de la tabla cda_participantes
+        // Se obtienen los participantes a través de la tabla cda_participantes
         const { data, error } = await supabase
             .from('cda_participantes')
             .select(`
-                participante_id,
+                id_participante, // Usamos 'id_participante' como en tu tabla
                 participantes (
                     id_participante,
                     nombre_participante,
@@ -162,7 +162,7 @@ const fetchCdaParticipantes = async (id_cda) => {
                     destacado
                 )
             `)
-            .eq('cda_id', id_cda);
+            .eq('id_cda', id_cda); // Usamos 'id_cda' como en tu tabla
 
         if (error) {
             console.error("Error al obtener participantes de CDA:", error);
@@ -189,8 +189,9 @@ const handleAgregarParticipantes = async (id_cda) => {
         const participantesToAdd = participantes
             .filter(p => participantesSeleccionados[p.id_participante])
             .map(p => ({
-                cda_id: id_cda,
-                participante_id: p.id_participante
+                id_cda: id_cda, // Usamos 'id_cda' como en tu tabla
+                id_participante: p.id_participante, // Usamos 'id_participante' como en tu tabla
+                asistio: true // Agregamos la columna 'asistio' con valor true
             }));
 
         if (participantesToAdd.length === 0) {
@@ -198,7 +199,7 @@ const handleAgregarParticipantes = async (id_cda) => {
             return;
         }
         
-        // 🚨 Se inserta en la tabla cda_participantes
+        // Se inserta en la tabla cda_participantes
         const { error } = await supabase
             .from('cda_participantes') 
             .insert(participantesToAdd);
