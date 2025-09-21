@@ -569,27 +569,28 @@ const handleEliminarCda = async (id_cda, event) => {
                     Participantes: {cda.participantes_count || 0}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button 
-                    onClick={() => verDetalles(cda)} 
-                    style={buttonSuccess}
-                  >
-                    Ver detalles
-                  </button>
-                  <button 
-                    onClick={(event) => handleEliminarCda(cda.id_cda, event)}
-                    style={{
-                      ...buttonPrimary,
-                      backgroundColor: "#dc3545",
-                      minWidth: "auto",
-                      fontSize: "16px" // Asegurar que el emoji se vea bien
-                    }}
-                    title="Eliminar CDA"
-                    type="button" // Asegurar que no sea submit
-                  >
-                    🗑️
-                  </button>
-                </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button 
+                  onClick={() => verDetalles(cda)} 
+                  style={buttonSuccess}
+                  type="button"
+                >
+                  Ver detalles
+                </button>
+                <button 
+                  onClick={(event) => handleEliminarCda(cda.id_cda, event)}
+                  style={{
+                    ...buttonPrimary,
+                    backgroundColor: "#dc3545",
+                    minWidth: "80px",
+                    fontSize: "14px"
+                  }}
+                  title="Eliminar CDA"
+                  type="button"
+                >
+                  🗑️ Eliminar 
+                </button>
+              </div>
               </div>
             ))}
           </div>
