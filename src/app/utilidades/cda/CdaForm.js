@@ -63,6 +63,43 @@ export default function CdaForm() {
     setEditandoSiembra(false);
     setNuevaSiembra("");
   };
+
+    const handleEliminarCda = async (id_cda) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar esta CDA? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      // Primero eliminar las relaciones en cda_participantes
+      const { error: errorRelaciones } = await supabase
+        .from('cda_participantes')
+        .delete()
+        .eq('id_cda', id_cda);
+
+      if (errorRelaciones) {
+        console.error("Error al eliminar relaciones:", errorRelaciones);
+        alert("Error al eliminar las relaciones de participantes. No se pudo completar la eliminación.");
+        return;
+      }
+
+      // Luego eliminar la CDA
+      const { error } = await supabase
+        .from('cda')
+        .delete()
+        .eq('id_cda', id_cda);
+
+      if (error) {
+        throw error;
+      }
+
+      alert("CDA eliminada correctamente");
+      fetchAllCdaData(); // Actualizar la lista
+
+    } catch (err) {
+      console.error("Error al eliminar CDA:", err);
+      alert("Hubo un error al eliminar la CDA: " + err.message);
+    }
+  };
   
   const fetchAllCdaData = async () => {
     try {
@@ -516,12 +553,25 @@ export default function CdaForm() {
                     Participantes: {cda.participantes_count || 0}
                   </div>
                 </div>
-                <button 
-                  onClick={() => verDetalles(cda)} 
-                  style={buttonSuccess}
-                >
-                  Ver detalles
-                </button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button 
+                    onClick={() => verDetalles(cda)} 
+                    style={buttonSuccess}
+                  >
+                    Ver detalles
+                  </button>
+                  <button 
+                    onClick={() => handleEliminarCda(cda.id_cda)}
+                    style={{
+                      ...buttonPrimary,
+                      backgroundColor: "#dc3545",
+                      minWidth: "auto"
+                    }}
+                    title="Eliminar CDA"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))}
           </div>
