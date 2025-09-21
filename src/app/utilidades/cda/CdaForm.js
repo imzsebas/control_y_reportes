@@ -575,7 +575,7 @@ const handleEliminarCda = async (id_cda, event) => {
                   style={buttonSuccess}
                   type="button"
                 >
-                  Ver detalles
+                  Ver detalles ggg
                 </button>
                 <button 
                   onClick={(event) => handleEliminarCda(cda.id_cda, event)}
