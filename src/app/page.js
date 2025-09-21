@@ -1,5 +1,5 @@
 import Link from "next/link"
-import Card from "../components/Card"
+import Card from "../components/Card/Card"
 import "./globals.css"
 
 export default function Home() {

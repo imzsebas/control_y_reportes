@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import ParticipantesForm from "./participantes/page";
-import CdaForm from "./CdaForm";
+import CdaForm from "../../../components/CdaForm/CdaForm";
 
 export default function CdaPage() {
   const [vista, setVista] = useState("inicio");
