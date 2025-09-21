@@ -579,13 +579,7 @@ const handleEliminarCda = async (id_cda, event) => {
                 </button>
                 <button 
                   onClick={(event) => handleEliminarCda(cda.id_cda, event)}
-                  style={{
-                    ...buttonPrimary,
-                    backgroundColor: "#dc3545",
-                    minWidth: "80px",
-                    fontSize: "14px"
-                  }}
-                  title="Eliminar CDA"
+                  style={buttonSuccess}
                   type="button"
                 >
                   🗑️ Eliminar 
