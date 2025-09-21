@@ -64,42 +64,58 @@ export default function CdaForm() {
     setNuevaSiembra("");
   };
 
-    const handleEliminarCda = async (id_cda) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta CDA? Esta acción no se puede deshacer.")) {
+const handleEliminarCda = async (id_cda, event) => {
+  // Prevenir propagación del evento
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  console.log("Intentando eliminar CDA con ID:", id_cda); // Debug log
+
+  if (!confirm("¿Estás seguro de que deseas eliminar esta CDA? Esta acción no se puede deshacer.")) {
+    return;
+  }
+
+  try {
+    console.log("Eliminando relaciones de participantes..."); // Debug log
+    
+    // Primero eliminar las relaciones en cda_participantes
+    const { error: errorRelaciones } = await supabase
+      .from('cda_participantes')
+      .delete()
+      .eq('id_cda', id_cda);
+
+    if (errorRelaciones) {
+      console.error("Error al eliminar relaciones:", errorRelaciones);
+      alert("Error al eliminar las relaciones de participantes. No se pudo completar la eliminación.");
       return;
     }
 
-    try {
-      // Primero eliminar las relaciones en cda_participantes
-      const { error: errorRelaciones } = await supabase
-        .from('cda_participantes')
-        .delete()
-        .eq('id_cda', id_cda);
+    console.log("Eliminando CDA..."); // Debug log
 
-      if (errorRelaciones) {
-        console.error("Error al eliminar relaciones:", errorRelaciones);
-        alert("Error al eliminar las relaciones de participantes. No se pudo completar la eliminación.");
-        return;
-      }
+    // Luego eliminar la CDA
+    const { error } = await supabase
+      .from('cda')
+      .delete()
+      .eq('id_cda', id_cda);
 
-      // Luego eliminar la CDA
-      const { error } = await supabase
-        .from('cda')
-        .delete()
-        .eq('id_cda', id_cda);
-
-      if (error) {
-        throw error;
-      }
-
-      alert("CDA eliminada correctamente");
-      fetchAllCdaData(); // Actualizar la lista
-
-    } catch (err) {
-      console.error("Error al eliminar CDA:", err);
-      alert("Hubo un error al eliminar la CDA: " + err.message);
+    if (error) {
+      console.error("Error al eliminar CDA:", error);
+      throw error;
     }
-  };
+
+    console.log("CDA eliminada exitosamente"); // Debug log
+    alert("CDA eliminada correctamente");
+    
+    // Actualizar la lista
+    await fetchAllCdaData();
+
+  } catch (err) {
+    console.error("Error completo al eliminar CDA:", err);
+    alert("Hubo un error al eliminar la CDA: " + err.message);
+  }
+};
   
   const fetchAllCdaData = async () => {
     try {
@@ -561,13 +577,15 @@ export default function CdaForm() {
                     Ver detalles
                   </button>
                   <button 
-                    onClick={() => handleEliminarCda(cda.id_cda)}
+                    onClick={(event) => handleEliminarCda(cda.id_cda, event)}
                     style={{
                       ...buttonPrimary,
                       backgroundColor: "#dc3545",
-                      minWidth: "auto"
+                      minWidth: "auto",
+                      fontSize: "16px" // Asegurar que el emoji se vea bien
                     }}
                     title="Eliminar CDA"
+                    type="button" // Asegurar que no sea submit
                   >
                     🗑️
                   </button>
