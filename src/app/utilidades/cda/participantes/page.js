@@ -26,8 +26,20 @@ export default function ParticipantesForm() {
   const [loading, setLoading] = useState(false);
   const [selectedParticipante, setSelectedParticipante] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterDestacado, setFilterDestacado] = useState("todos");
 
-  // Función para cargar participantes
+  // Función para filtrar participantes
+  const participantesFiltrados = participantes.filter(participante => {
+    const matchesName = participante.nombre_participante.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDestacado = filterDestacado === "todos" || 
+      (filterDestacado === "si" && participante.destacado) ||
+      (filterDestacado === "no" && !participante.destacado);
+    
+    return matchesName && matchesDestacado;
+  });
   const cargarParticipantes = async () => {
     setLoading(true);
     try {
@@ -327,7 +339,6 @@ export default function ParticipantesForm() {
     fontSize: "14px",
     fontWeight: "500",
     cursor: "pointer",
-    transition: "background-color 0.2s",
     display: "inline-block",
     textAlign: "center",
     minWidth: "120px"
@@ -348,6 +359,14 @@ export default function ParticipantesForm() {
   const buttonInfo = {
     ...buttonPrimary,
     backgroundColor: "#17a2b8",
+    minWidth: "auto",
+    padding: "8px 12px"
+  };
+
+  const buttonWarning = {
+    ...buttonPrimary,
+    backgroundColor: "#ffc107",
+    color: "#212529",
     minWidth: "auto",
     padding: "8px 12px"
   };
@@ -645,13 +664,41 @@ export default function ParticipantesForm() {
         <div style={cardStyle} className="card">
           <h3 style={subHeaderStyle} className="sub-header">Lista de Participantes</h3>
           
+          {/* Filtros de búsqueda */}
+          <div style={{ marginBottom: "20px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <div style={{ flex: "1", minWidth: "200px" }}>
+              <label style={{ ...labelStyle, marginBottom: "4px" }}>Buscar por nombre:</label>
+              <input
+                type="text"
+                placeholder="Escriba el nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={inputStyle}
+                className="input"
+              />
+            </div>
+            <div style={{ minWidth: "150px" }}>
+              <label style={{ ...labelStyle, marginBottom: "4px" }}>Filtrar destacados:</label>
+              <select
+                value={filterDestacado}
+                onChange={(e) => setFilterDestacado(e.target.value)}
+                style={inputStyle}
+                className="input"
+              >
+                <option value="todos">Todos</option>
+                <option value="si">Solo destacados ⭐</option>
+                <option value="no">No destacados</option>
+              </select>
+            </div>
+          </div>
+          
           {loading ? (
             <p>Cargando participantes...</p>
-          ) : participantes.length === 0 ? (
-            <p>No hay participantes registrados.</p>
+          ) : participantesFiltrados.length === 0 ? (
+            <p>{participantes.length === 0 ? "No hay participantes registrados." : "No se encontraron participantes con los filtros aplicados."}</p>
           ) : (
             <div>
-              {participantes.map((participante) => (
+              {participantesFiltrados.map((participante) => (
                 <div key={participante.id_participante} style={listItemStyle} className="participant-item">
                   <div style={listItemInfoStyle} className="participant-info">
                     <strong>{participante.nombre_participante}</strong>
@@ -684,10 +731,18 @@ export default function ParticipantesForm() {
 
         {/* Modal de Detalles */}
         {showDetails && selectedParticipante && (
-          <div style={modalStyle} onClick={() => setShowDetails(false)}>
+          <div style={modalStyle} onClick={() => {
+            setShowDetails(false);
+            setIsEditing(false);
+            setEditData(null);
+          }}>
             <div style={modalContentStyle} className="modal-content" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => setShowDetails(false)}
+                onClick={() => {
+                  setShowDetails(false);
+                  setIsEditing(false);
+                  setEditData(null);
+                }}
                 style={{
                   position: "absolute",
                   top: "10px",
@@ -702,28 +757,227 @@ export default function ParticipantesForm() {
                 ×
               </button>
               
-              <h3 style={subHeaderStyle} className="sub-header">Detalles del Participante</h3>
-              
-              <div style={responsiveGridStyle} className="modal-grid">
-                <div><strong>Nombre:</strong> {selectedParticipante.nombre_participante}</div>
-                <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
-                <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
-                <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
-                <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
-                <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
-                <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
-                <div><strong>Destacado:</strong> {selectedParticipante.destacado ? "Sí ⭐" : "No"}</div>
-              </div>
+              <h3 style={subHeaderStyle} className="sub-header">
+                {isEditing ? "Editar Participante" : "Detalles del Participante"}
+              </h3>
 
-              {selectedParticipante.acudiente && (
-                <div style={{ marginTop: "20px" }}>
-                  <h4 style={subHeaderStyle} className="sub-header">Datos del Acudiente</h4>
+              {!isEditing ? (
+                // Modo vista
+                <>
                   <div style={responsiveGridStyle} className="modal-grid">
-                    <div><strong>Nombre:</strong> {selectedParticipante.acudiente.nombre_acudiente}</div>
-                    <div><strong>Parentesco:</strong> {selectedParticipante.acudiente.parentezco}</div>
-                    <div><strong>Celular:</strong> {selectedParticipante.acudiente.celular}</div>
+                    <div><strong>Nombre:</strong> {selectedParticipante.nombre_participante}</div>
+                    <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
+                    <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
+                    <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
+                    <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
+                    <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
+                    <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
+                    <div><strong>Destacado:</strong> {selectedParticipante.destacado ? "Sí ⭐" : "No"}</div>
                   </div>
-                </div>
+
+                  {selectedParticipante.acudiente && (
+                    <div style={{ marginTop: "20px" }}>
+                      <h4 style={subHeaderStyle} className="sub-header">Datos del Acudiente</h4>
+                      <div style={responsiveGridStyle} className="modal-grid">
+                        <div><strong>Nombre:</strong> {selectedParticipante.acudiente.nombre_acudiente}</div>
+                        <div><strong>Parentesco:</strong> {selectedParticipante.acudiente.parentezco}</div>
+                        <div><strong>Celular:</strong> {selectedParticipante.acudiente.celular}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: "20px", textAlign: "right" }}>
+                    <button
+                      onClick={() => iniciarEdicion(selectedParticipante)}
+                      style={buttonWarning}
+                      className="button"
+                    >
+                      ✏️ Editar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // Modo edición
+                <>
+                  <div style={{ marginBottom: "20px" }}>
+                    <h4 style={{ ...subHeaderStyle, fontSize: "16px" }}>Datos del Participante</h4>
+                    <div style={responsiveGridStyle} className="modal-grid">
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Nombre:</label>
+                        <input
+                          value={editData.participante.nombre_participante}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, nombre_participante: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        />
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Edad:</label>
+                        <input
+                          type="number"
+                          value={editData.participante.edad}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, edad: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        />
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Sexo:</label>
+                        <select
+                          value={editData.participante.sexo}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, sexo: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        >
+                          <option value="Masculino">Masculino</option>
+                          <option value="Femenino">Femenino</option>
+                        </select>
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Barrio:</label>
+                        <input
+                          value={editData.participante.barrio || ""}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, barrio: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        />
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Fecha de nacimiento:</label>
+                        <input
+                          type="date"
+                          value={editData.participante.fecha_nacimiento}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, fecha_nacimiento: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        />
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Bautizado:</label>
+                        <select
+                          value={editData.participante.bautizado}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, bautizado: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        >
+                          <option value="Si">Sí</option>
+                          <option value="No">No</option>
+                        </select>
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Rol:</label>
+                        <select
+                          value={editData.participante.rol}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, rol: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                        >
+                          <option value="Tropa">Tropa</option>
+                          <option value="Capitan">Capitán</option>
+                          <option value="Valiente de David">Valiente de David</option>
+                          <option value="Intendente">Intendente</option>
+                        </select>
+                      </div>
+                      <div style={{ ...formGroupStyle, display: "flex", alignItems: "center", gap: "10px" }}>
+                        <label style={{ ...labelStyle, marginBottom: 0 }}>Destacado:</label>
+                        <input
+                          type="checkbox"
+                          checked={editData.participante.destacado}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, destacado: e.target.checked }
+                          }))}
+                          style={{ transform: "scale(1.2)" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {editData.acudiente && (
+                    <div style={{ marginBottom: "20px" }}>
+                      <h4 style={{ ...subHeaderStyle, fontSize: "16px" }}>Datos del Acudiente</h4>
+                      <div style={responsiveGridStyle} className="modal-grid">
+                        <div style={formGroupStyle}>
+                          <label style={labelStyle}>Nombre del acudiente:</label>
+                          <input
+                            value={editData.acudiente.nombre_acudiente}
+                            onChange={(e) => setEditData(prev => ({
+                              ...prev,
+                              acudiente: { ...prev.acudiente, nombre_acudiente: e.target.value }
+                            }))}
+                            style={inputStyle}
+                            className="input"
+                          />
+                        </div>
+                        <div style={formGroupStyle}>
+                          <label style={labelStyle}>Parentesco:</label>
+                          <input
+                            value={editData.acudiente.parentezco}
+                            onChange={(e) => setEditData(prev => ({
+                              ...prev,
+                              acudiente: { ...prev.acudiente, parentezco: e.target.value }
+                            }))}
+                            style={inputStyle}
+                            className="input"
+                          />
+                        </div>
+                        <div style={formGroupStyle}>
+                          <label style={labelStyle}>Celular:</label>
+                          <input
+                            value={editData.acudiente.celular}
+                            onChange={(e) => setEditData(prev => ({
+                              ...prev,
+                              acudiente: { ...prev.acudiente, celular: e.target.value }
+                            }))}
+                            style={inputStyle}
+                            className="input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditData(null);
+                      }}
+                      style={buttonDanger}
+                      className="button"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={guardarEdicion}
+                      style={buttonSuccess}
+                      className="button"
+                    >
+                      Guardar cambios
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
