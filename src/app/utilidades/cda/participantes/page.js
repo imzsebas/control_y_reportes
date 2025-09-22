@@ -9,6 +9,7 @@ export default function ParticipantesForm() {
     edad: "",
     sexo: "Masculino",
     barrio: "",
+    telefono: "",
     fecha_nacimiento: "",
     bautizado: "No",
     destacado: false,
@@ -108,6 +109,7 @@ export default function ParticipantesForm() {
         edad: participante.edad,
         sexo: participante.sexo,
         barrio: participante.barrio || "",
+        telefono: participante.telefono || "",
         fecha_nacimiento: participante.fecha_nacimiento,
         bautizado: participante.bautizado,
         destacado: participante.destacado,
@@ -136,6 +138,7 @@ export default function ParticipantesForm() {
           edad: parseInt(editData.participante.edad, 10),
           sexo: editData.participante.sexo,
           barrio: editData.participante.barrio.trim() || null,
+          telefono: editData.participante.telefono.trim() || null,
           fecha_nacimiento: editData.participante.fecha_nacimiento,
           bautizado: editData.participante.bautizado,
           destacado: editData.participante.destacado,
@@ -251,6 +254,7 @@ export default function ParticipantesForm() {
       edad: parseInt(formData.edad, 10),
       sexo: formData.sexo,
       barrio: formData.barrio.trim() || null,
+      telefono: formData.telefono.trim() || null,
       fecha_nacimiento: formData.fecha_nacimiento,
       bautizado: formData.bautizado,
       destacado: formData.destacado,
@@ -625,6 +629,19 @@ export default function ParticipantesForm() {
               </div>
               
               <div style={formGroupStyle}>
+                <label htmlFor="telefono" style={labelStyle}>Teléfono:</label>
+                <input 
+                  id="telefono" 
+                  name="telefono" 
+                  value={formData.telefono} 
+                  onChange={handleChange} 
+                  style={inputStyle}
+                  className="input"
+                  placeholder="Opcional"
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
                 <label htmlFor="fecha_nacimiento" style={labelStyle}>Fecha de nacimiento:</label>
                 <input 
                   id="fecha_nacimiento" 
@@ -859,6 +876,7 @@ export default function ParticipantesForm() {
                     <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
                     <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
                     <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
+                    <div><strong>Teléfono:</strong> {selectedParticipante.telefono || "No especificado"}</div>
                     <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
                     <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
                     <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
@@ -942,6 +960,19 @@ export default function ParticipantesForm() {
                           }))}
                           style={inputStyle}
                           className="input"
+                        />
+                      </div>
+                      <div style={formGroupStyle}>
+                        <label style={labelStyle}>Teléfono:</label>
+                        <input
+                          value={editData.participante.telefono || ""}
+                          onChange={(e) => setEditData(prev => ({
+                            ...prev,
+                            participante: { ...prev.participante, telefono: e.target.value }
+                          }))}
+                          style={inputStyle}
+                          className="input"
+                          placeholder="Opcional"
                         />
                       </div>
                       <div style={formGroupStyle}>
