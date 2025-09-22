@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 // Importar `supabase` de la ruta correcta
 import { supabase } from "@/lib/supabaseClient";
 
@@ -22,6 +22,107 @@ export default function ParticipantesForm() {
     parentezco: "",
     celular: ""
   });
+  const [participantes, setParticipantes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedParticipante, setSelectedParticipante] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Función para cargar participantes
+  const cargarParticipantes = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("participantes")
+        .select("*")
+        .order('nombre_participante', { ascending: true });
+
+      if (error) {
+        console.error("Error cargando participantes:", error);
+        alert("Error cargando participantes: " + error.message);
+        return;
+      }
+
+      setParticipantes(data || []);
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado cargando participantes");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para ver detalles de un participante
+  const verDetalles = async (participante) => {
+    try {
+      // Buscar si tiene acudiente
+      const { data: relacion, error: errorRel } = await supabase
+        .from("participante_acudiente")
+        .select("id_acudiente")
+        .eq("id_participante", participante.id_participante)
+        .single();
+
+      let acudienteData = null;
+      
+      if (!errorRel && relacion) {
+        const { data: acud, error: errorAcud } = await supabase
+          .from("acudientes")
+          .select("*")
+          .eq("id_acudiente", relacion.id_acudiente)
+          .single();
+        
+        if (!errorAcud && acud) {
+          acudienteData = acud;
+        }
+      }
+
+      setSelectedParticipante({
+        ...participante,
+        acudiente: acudienteData
+      });
+      setShowDetails(true);
+    } catch (err) {
+      console.error("Error obteniendo detalles:", err);
+      alert("Error obteniendo detalles del participante");
+    }
+  };
+
+  // Función para eliminar participante
+  const eliminarParticipante = async (id_participante) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este participante?")) {
+      return;
+    }
+
+    try {
+      // Primero eliminar la relación con acudiente si existe
+      await supabase
+        .from("participante_acudiente")
+        .delete()
+        .eq("id_participante", id_participante);
+
+      // Luego eliminar el participante
+      const { error } = await supabase
+        .from("participantes")
+        .delete()
+        .eq("id_participante", id_participante);
+
+      if (error) {
+        console.error("Error eliminando participante:", error);
+        alert("Error eliminando participante: " + error.message);
+        return;
+      }
+
+      alert("Participante eliminado exitosamente");
+      cargarParticipantes(); // Recargar la lista
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado eliminando participante");
+    }
+  };
+
+  // Cargar participantes al montar el componente
+  useEffect(() => {
+    cargarParticipantes();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -109,6 +210,7 @@ export default function ParticipantesForm() {
       setFormData(initialForm);
       setAcudiente({ nombre_acudiente: "", parentezco: "", celular: "" });
       setNecesitaAcudiente("");
+      cargarParticipantes(); // Recargar la lista
     } catch (err) {
       console.error("Error inesperado:", err);
       alert("Error inesperado: " + (err.message || JSON.stringify(err)));
@@ -150,6 +252,20 @@ export default function ParticipantesForm() {
   const buttonSuccess = {
     ...buttonPrimary,
     backgroundColor: "#28a745"
+  };
+
+  const buttonDanger = {
+    ...buttonPrimary,
+    backgroundColor: "#dc3545",
+    minWidth: "auto",
+    padding: "8px 12px"
+  };
+
+  const buttonInfo = {
+    ...buttonPrimary,
+    backgroundColor: "#17a2b8",
+    minWidth: "auto",
+    padding: "8px 12px"
   };
 
   const inputStyle = {
@@ -194,6 +310,41 @@ export default function ParticipantesForm() {
     fontSize: "18px",
     fontWeight: "500",
     marginBottom: "16px"
+  };
+
+  const listItemStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 16px",
+    backgroundColor: "#f8f9fa",
+    borderRadius: "8px",
+    marginBottom: "8px",
+    border: "1px solid #e9ecef"
+  };
+
+  const modalStyle = {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    right: "0",
+    bottom: "0",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000
+  };
+
+  const modalContentStyle = {
+    backgroundColor: "white",
+    borderRadius: "12px",
+    padding: "24px",
+    maxWidth: "600px",
+    width: "90%",
+    maxHeight: "80vh",
+    overflow: "auto",
+    position: "relative"
   };
 
   return (
@@ -371,6 +522,92 @@ export default function ParticipantesForm() {
           </button>
         </form>
       </div>
+
+      {/* Lista de Participantes */}
+      <div style={cardStyle}>
+        <h3 style={subHeaderStyle}>Lista de Participantes</h3>
+        
+        {loading ? (
+          <p>Cargando participantes...</p>
+        ) : participantes.length === 0 ? (
+          <p>No hay participantes registrados.</p>
+        ) : (
+          <div>
+            {participantes.map((participante) => (
+              <div key={participante.id_participante} style={listItemStyle}>
+                <div>
+                  <strong>{participante.nombre_participante}</strong>
+                  <span style={{ marginLeft: "10px", color: "#666" }}>
+                    {participante.edad} años - {participante.rol}
+                    {participante.destacado && <span style={{ color: "#f39c12", marginLeft: "5px" }}>⭐</span>}
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    onClick={() => verDetalles(participante)}
+                    style={buttonInfo}
+                  >
+                    Ver detalles
+                  </button>
+                  <button
+                    onClick={() => eliminarParticipante(participante.id_participante)}
+                    style={buttonDanger}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Detalles */}
+      {showDetails && selectedParticipante && (
+        <div style={modalStyle} onClick={() => setShowDetails(false)}>
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowDetails(false)}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "none",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "#999"
+              }}
+            >
+              ×
+            </button>
+            
+            <h3 style={subHeaderStyle}>Detalles del Participante</h3>
+            
+            <div style={gridStyle}>
+              <div><strong>Nombre:</strong> {selectedParticipante.nombre_participante}</div>
+              <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
+              <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
+              <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
+              <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
+              <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
+              <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
+              <div><strong>Destacado:</strong> {selectedParticipante.destacado ? "Sí ⭐" : "No"}</div>
+            </div>
+
+            {selectedParticipante.acudiente && (
+              <div style={{ marginTop: "20px" }}>
+                <h4 style={subHeaderStyle}>Datos del Acudiente</h4>
+                <div style={gridStyle}>
+                  <div><strong>Nombre:</strong> {selectedParticipante.acudiente.nombre_acudiente}</div>
+                  <div><strong>Parentesco:</strong> {selectedParticipante.acudiente.parentezco}</div>
+                  <div><strong>Celular:</strong> {selectedParticipante.acudiente.celular}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
