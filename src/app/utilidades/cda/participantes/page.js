@@ -29,13 +29,23 @@ export default function ParticipantesForm() {
   // Estados para el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedParticipante, setSelectedParticipante] = useState(null);
-  const [modalMode, setModalMode] = useState("view"); // 'view' o 'edit'
+  const [showDetails, setShowDetails] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterDestacado, setFilterDestacado] = useState("todos");
 
-  useEffect(() => {
-    fetchParticipantes();
-  }, []);
+  // Función para filtrar participantes
+  const participantesFiltrados = participantes.filter(participante => {
+    const matchesName = participante.nombre_participante.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDestacado = filterDestacado === "todos" || 
+      (filterDestacado === "si" && participante.destacado) ||
+      (filterDestacado === "no" && !participante.destacado);
+    
+    return matchesName && matchesDestacado;
+  });
 
-  const fetchParticipantes = async () => {
+  const cargarParticipantes = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("participantes")
@@ -45,17 +55,181 @@ export default function ParticipantesForm() {
       `)
       .order("nombre_participante", { ascending: true });
 
-    if (error) {
-      console.error("Error al obtener participantes:", error);
-    } else {
-      const mappedData = data.map(p => ({
-        ...p,
-        acudiente: p.participante_acudiente[0]?.acudientes || null
-      }));
-      setParticipantes(mappedData);
+      if (error) {
+        console.error("Error cargando participantes:", error);
+        alert("Error cargando participantes: " + error.message);
+        return;
+      }
+
+      setParticipantes(data || []);
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado cargando participantes");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  // Función para ver detalles de un participante
+  const verDetalles = async (participante) => {
+    try {
+      // Buscar si tiene acudiente
+      const { data: relacion, error: errorRel } = await supabase
+        .from("participante_acudiente")
+        .select("id_acudiente")
+        .eq("id_participante", participante.id_participante)
+        .single();
+
+      let acudienteData = null;
+      
+      if (!errorRel && relacion) {
+        const { data: acud, error: errorAcud } = await supabase
+          .from("acudientes")
+          .select("*")
+          .eq("id_acudiente", relacion.id_acudiente)
+          .single();
+        
+        if (!errorAcud && acud) {
+          acudienteData = acud;
+        }
+      }
+
+      setSelectedParticipante({
+        ...participante,
+        acudiente: acudienteData
+      });
+      setShowDetails(true);
+    } catch (err) {
+      console.error("Error obteniendo detalles:", err);
+      alert("Error obteniendo detalles del participante");
+    }
+  };
+
+  // Función para iniciar edición
+  const iniciarEdicion = (participante) => {
+    setEditData({
+      participante: {
+        id_participante: participante.id_participante,
+        nombre_participante: participante.nombre_participante,
+        edad: participante.edad,
+        sexo: participante.sexo,
+        barrio: participante.barrio || "",
+        fecha_nacimiento: participante.fecha_nacimiento,
+        bautizado: participante.bautizado,
+        destacado: participante.destacado,
+        rol: participante.rol
+      },
+      acudiente: participante.acudiente ? {
+        id_acudiente: participante.acudiente.id_acudiente,
+        nombre_acudiente: participante.acudiente.nombre_acudiente,
+        parentezco: participante.acudiente.parentezco,
+        celular: participante.acudiente.celular
+      } : null
+    });
+    setIsEditing(true);
+  };
+
+  // Función para guardar edición
+  const guardarEdicion = async () => {
+    if (!editData) return;
+
+    try {
+      // Actualizar datos del participante
+      const { error: errorParticipante } = await supabase
+        .from("participantes")
+        .update({
+          nombre_participante: editData.participante.nombre_participante.trim(),
+          edad: parseInt(editData.participante.edad, 10),
+          sexo: editData.participante.sexo,
+          barrio: editData.participante.barrio.trim() || null,
+          fecha_nacimiento: editData.participante.fecha_nacimiento,
+          bautizado: editData.participante.bautizado,
+          destacado: editData.participante.destacado,
+          rol: editData.participante.rol
+        })
+        .eq("id_participante", editData.participante.id_participante);
+
+      if (errorParticipante) {
+        console.error("Error actualizando participante:", errorParticipante);
+        alert("Error actualizando participante: " + errorParticipante.message);
+        return;
+      }
+
+      // Actualizar datos del acudiente si existe
+      if (editData.acudiente) {
+        const { error: errorAcudiente } = await supabase
+          .from("acudientes")
+          .update({
+            nombre_acudiente: editData.acudiente.nombre_acudiente.trim(),
+            parentezco: editData.acudiente.parentezco.trim(),
+            celular: editData.acudiente.celular.trim()
+          })
+          .eq("id_acudiente", editData.acudiente.id_acudiente);
+
+        if (errorAcudiente) {
+          console.error("Error actualizando acudiente:", errorAcudiente);
+          alert("Error actualizando acudiente: " + errorAcudiente.message);
+          return;
+        }
+      }
+
+      alert("Datos actualizados exitosamente");
+      
+      // Actualizar el participante seleccionado con los nuevos datos
+      const updatedParticipante = {
+        ...editData.participante,
+        acudiente: editData.acudiente
+      };
+      setSelectedParticipante(updatedParticipante);
+      
+      // Recargar la lista y salir del modo edición
+      cargarParticipantes();
+      setIsEditing(false);
+      setEditData(null);
+
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado actualizando datos");
+    }
+  };
+
+  // Función para eliminar participante
+  const eliminarParticipante = async (id_participante) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este participante?")) {
+      return;
+    }
+
+    try {
+      // Primero eliminar la relación con acudiente si existe
+      await supabase
+        .from("participante_acudiente")
+        .delete()
+        .eq("id_participante", id_participante);
+
+      // Luego eliminar el participante
+      const { error } = await supabase
+        .from("participantes")
+        .delete()
+        .eq("id_participante", id_participante);
+
+      if (error) {
+        console.error("Error eliminando participante:", error);
+        alert("Error eliminando participante: " + error.message);
+        return;
+      }
+
+      alert("Participante eliminado exitosamente");
+      cargarParticipantes(); // Recargar la lista
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado eliminando participante");
+    }
+  };
+
+  // Cargar participantes al montar el componente
+  useEffect(() => {
+    cargarParticipantes();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -150,123 +324,230 @@ export default function ParticipantesForm() {
     }
   };
 
-  const eliminarParticipante = async (id) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este participante?")) {
-      const { error } = await supabase
-        .from("participantes")
-        .delete()
-        .eq("id_participante", id);
-
-      if (error) {
-        console.error("Error eliminando participante:", error);
-        alert("Error al eliminar el participante.");
-      } else {
-        alert("Participante eliminado con éxito.");
-        fetchParticipantes();
-      }
-    }
-  };
-  
-  const verDetalles = (participante) => {
-    setSelectedParticipante(participante);
-    setIsModalOpen(true);
-    setModalMode("view");
+  // Estilos consistentes con CdaForm.js - SIN EFECTOS DE HOVER/ZOOM
+  const containerStyle = {
+    padding: "16px",
+    maxWidth: "1200px",
+    margin: "0 auto",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
   };
 
-  const handleEdit = () => {
-    setModalMode("edit");
-    setFormData({
-      nombre_participante: selectedParticipante.nombre_participante,
-      edad: selectedParticipante.edad,
-      sexo: selectedParticipante.sexo,
-      barrio: selectedParticipante.barrio,
-      telefono: selectedParticipante.telefono,
-      fecha_nacimiento: selectedParticipante.fecha_nacimiento,
-      bautizado: selectedParticipante.bautizado,
-      destacado: selectedParticipante.destacado,
-      rol: selectedParticipante.rol
-    });
-    if (selectedParticipante.acudiente) {
-      setAcudiente({
-        nombre_acudiente: selectedParticipante.acudiente.nombre_acudiente,
-        parentezco: selectedParticipante.acudiente.parentezco,
-        celular: selectedParticipante.acudiente.celular
-      });
-      setNecesitaAcudiente("si");
-    } else {
-      setAcudiente({ nombre_acudiente: "", parentezco: "", celular: "" });
-      setNecesitaAcudiente("no");
-    }
-  };
-
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-
-    if (!formData.nombre_participante.trim()) return alert("Nombre requerido");
-
-    const payload = {
-      nombre_participante: formData.nombre_participante.trim(),
-      edad: parseInt(formData.edad, 10),
-      sexo: formData.sexo,
-      barrio: formData.barrio.trim() || null,
-      telefono: formData.telefono.trim() || null,
-      fecha_nacimiento: formData.fecha_nacimiento,
-      bautizado: formData.bautizado,
-      destacado: formData.destacado,
-      rol: formData.rol
-    };
-
-    try {
-      const { error: updateError } = await supabase
-        .from("participantes")
-        .update(payload)
-        .eq("id_participante", selectedParticipante.id_participante);
-
-      if (updateError) throw updateError;
-
-      const { error: relError } = await supabase
-        .from("participante_acudiente")
-        .delete()
-        .eq("id_participante", selectedParticipante.id_participante);
-        
-      if (relError) throw relError;
-
-      if (necesitaAcudiente === "si") {
-        if (!acudiente.nombre_acudiente.trim() || !acudiente.parentezco.trim() || !acudiente.celular.trim()) {
-          alert("Completa los datos del acudiente");
-          return;
+  // Media queries para responsive - SIN EFECTOS DE HOVER
+  const mediaQueries = `
+    <style>
+      @media (max-width: 768px) {
+        .participant-item {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 12px !important;
         }
-
-        const { data: acud, error: errorAc } = await supabase
-          .from("acudientes")
-          .insert([{
-            nombre_acudiente: acudiente.nombre_acudiente.trim(),
-            parentezco: acudiente.parentezco.trim(),
-            celular: acudiente.celular.trim()
-          }])
-          .select()
-          .single();
-
-        if (errorAc) throw errorAc;
-
-        const { error: newRelError } = await supabase
-          .from("participante_acudiente")
-          .insert([{
-            id_participante: selectedParticipante.id_participante,
-            id_acudiente: acud.id_acudiente
-          }]);
-
-        if (newRelError) throw newRelError;
+        
+        .participant-info {
+          width: 100% !important;
+        }
+        
+        .participant-actions {
+          width: 100% !important;
+          justify-content: flex-start !important;
+        }
+        
+        .modal-content {
+          padding: 16px !important;
+          margin: 10px !important;
+          max-height: 85vh !important;
+        }
+        
+        .modal-grid {
+          grid-template-columns: 1fr !important;
+          gap: 8px !important;
+        }
+        
+        .form-grid {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .container {
+          padding: 8px !important;
+        }
+        
+        .card {
+          padding: 12px !important;
+          margin-bottom: 12px !important;
+        }
+        
+        .header {
+          font-size: 20px !important;
+          margin-bottom: 16px !important;
+        }
+        
+        .sub-header {
+          font-size: 16px !important;
+          margin-bottom: 12px !important;
+        }
+        
+        .button {
+          font-size: 12px !important;
+          padding: 8px 12px !important;
+        }
+        
+        .input {
+          font-size: 16px !important;
+        }
       }
+      
+      @media (max-width: 480px) {
+        .participant-actions {
+          flex-direction: column !important;
+        }
+        
+        .participant-actions button {
+          width: 100% !important;
+        }
+        
+        .modal-content {
+          padding: 12px !important;
+          margin: 5px !important;
+        }
+        
+        .container {
+          padding: 4px !important;
+        }
+      }
+    </style>
+  `;
 
-      alert("Participante actualizado con éxito.");
-      setIsModalOpen(false);
-      fetchParticipantes();
-      setModalMode("view");
-    } catch (err) {
-      console.error("Error actualizando participante:", err);
-      alert("Error al actualizar: " + (err.message || JSON.stringify(err)));
-    }
+  const cardStyle = {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "20px",
+    marginBottom: "16px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    border: "1px solid #e1e5e9"
+    // REMOVIDO: transform, transition y hover effects
+  };
+
+  const buttonPrimary = {
+    backgroundColor: "#0066cc",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    padding: "12px 20px",
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    display: "inline-block",
+    textAlign: "center",
+    minWidth: "120px"
+  };
+
+  const buttonSuccess = {
+    ...buttonPrimary,
+    backgroundColor: "#28a745"
+  };
+
+  const buttonDanger = {
+    ...buttonPrimary,
+    backgroundColor: "#dc3545",
+    minWidth: "auto",
+    padding: "8px 12px"
+  };
+
+  const buttonInfo = {
+    ...buttonPrimary,
+    backgroundColor: "#17a2b8",
+    minWidth: "auto",
+    padding: "8px 12px"
+  };
+
+  const buttonWarning = {
+    ...buttonPrimary,
+    backgroundColor: "#ffc107",
+    color: "#212529",
+    minWidth: "auto",
+    padding: "8px 12px"
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #ddd",
+    borderRadius: "6px",
+    fontSize: "14px",
+    boxSizing: "border-box"
+  };
+
+  const labelStyle = {
+    display: "block",
+    marginBottom: "6px",
+    fontWeight: "500",
+    color: "#333",
+    fontSize: "14px"
+  };
+
+  const formGroupStyle = {
+    marginBottom: "16px"
+  };
+
+  const gridStyle = {
+    display: "grid",
+    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))"
+  };
+
+  const headerStyle = {
+    color: "#333",
+    fontSize: "24px",
+    fontWeight: "600",
+    marginBottom: "20px",
+    borderBottom: "2px solid #0066cc",
+    paddingBottom: "10px"
+  };
+
+  const subHeaderStyle = {
+    color: "#555",
+    fontSize: "18px",
+    fontWeight: "500",
+    marginBottom: "16px"
+  };
+
+  const listItemStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    padding: "12px 16px",
+    backgroundColor: "#f8f9fa",
+    borderRadius: "8px",
+    marginBottom: "8px",
+    border: "1px solid #e9ecef",
+    flexWrap: "wrap",
+    gap: "8px"
+    // REMOVIDO: hover effects y transform
+  };
+
+  const listItemInfoStyle = {
+    flex: "1",
+    minWidth: "200px"
+  };
+
+  const listItemActionsStyle = {
+    display: "flex",
+    gap: "8px",
+    flexShrink: 0,
+    flexWrap: "wrap"
+  };
+
+  const modalStyle = {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    right: "0",
+    bottom: "0",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+    padding: "10px"
   };
 
   const formatearFecha = (fechaISO) => {
