@@ -377,7 +377,6 @@ export default function ParticipantesForm() {
     border: "1px solid #ddd",
     borderRadius: "6px",
     fontSize: "14px",
-    transition: "border-color 0.2s",
     boxSizing: "border-box"
   };
 
