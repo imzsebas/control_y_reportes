@@ -4,13 +4,13 @@ import "./globals.css"
 
 export default function Home() {
   const utilidades = [
-    { id: "cda", nombre: "Casa de Adolescentes", descripcion: "Añadir descripcion" },
-    { id: "gf", nombre: "Grupos familiares", descripcion: "Añadir descripcion" },
+    { id: "cda", nombre: "Casa de Adolescentes", descripcion: "" },
+    { id: "gf", nombre: "Colportaje", descripcion: "" },
   ]
 
   return (
     <main className="home">
-      <h1 className="titulo">Mis Utilidades 🤖</h1>
+      <h1 className="titulo">Herramientas</h1>
       <div className="grid">
         {utilidades.map((utilidad) => (
           <Link key={utilidad.id} href={`/utilidades/${utilidad.id}`}>

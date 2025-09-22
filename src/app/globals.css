@@ -246,6 +246,7 @@ body::before {
   background: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
 }
 
 .navbar nav button:hover::before {
