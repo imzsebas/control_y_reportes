@@ -225,6 +225,90 @@ export default function ParticipantesForm() {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
   };
 
+  // Media queries para responsive
+  const mediaQueries = `
+    <style>
+      @media (max-width: 768px) {
+        .participant-item {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 12px !important;
+        }
+        
+        .participant-info {
+          width: 100% !important;
+        }
+        
+        .participant-actions {
+          width: 100% !important;
+          justify-content: flex-start !important;
+        }
+        
+        .modal-content {
+          padding: 16px !important;
+          margin: 10px !important;
+          max-height: 85vh !important;
+        }
+        
+        .modal-grid {
+          grid-template-columns: 1fr !important;
+          gap: 8px !important;
+        }
+        
+        .form-grid {
+          grid-template-columns: 1fr !important;
+        }
+        
+        .container {
+          padding: 8px !important;
+        }
+        
+        .card {
+          padding: 12px !important;
+          margin-bottom: 12px !important;
+        }
+        
+        .header {
+          font-size: 20px !important;
+          margin-bottom: 16px !important;
+        }
+        
+        .sub-header {
+          font-size: 16px !important;
+          margin-bottom: 12px !important;
+        }
+        
+        .button {
+          font-size: 12px !important;
+          padding: 8px 12px !important;
+        }
+        
+        .input {
+          font-size: 16px !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .participant-actions {
+          flex-direction: column !important;
+        }
+        
+        .participant-actions button {
+          width: 100% !important;
+        }
+        
+        .modal-content {
+          padding: 12px !important;
+          margin: 5px !important;
+        }
+        
+        .container {
+          padding: 4px !important;
+        }
+      }
+    </style>
+  `;
+
   const cardStyle = {
     backgroundColor: "#ffffff",
     borderRadius: "12px",
@@ -315,12 +399,26 @@ export default function ParticipantesForm() {
   const listItemStyle = {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     padding: "12px 16px",
     backgroundColor: "#f8f9fa",
     borderRadius: "8px",
     marginBottom: "8px",
-    border: "1px solid #e9ecef"
+    border: "1px solid #e9ecef",
+    flexWrap: "wrap",
+    gap: "8px"
+  };
+
+  const listItemInfoStyle = {
+    flex: "1",
+    minWidth: "200px"
+  };
+
+  const listItemActionsStyle = {
+    display: "flex",
+    gap: "8px",
+    flexShrink: 0,
+    flexWrap: "wrap"
   };
 
   const modalStyle = {
@@ -333,281 +431,304 @@ export default function ParticipantesForm() {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000
+    zIndex: 1000,
+    padding: "10px"
   };
 
   const modalContentStyle = {
     backgroundColor: "white",
     borderRadius: "12px",
-    padding: "24px",
+    padding: "16px",
     maxWidth: "600px",
-    width: "90%",
-    maxHeight: "80vh",
+    width: "100%",
+    maxHeight: "90vh",
     overflow: "auto",
     position: "relative"
   };
 
+  const responsiveGridStyle = {
+    display: "grid",
+    gap: "12px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))"
+  };
+
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        <h2 style={headerStyle}>Añadir Participante</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={gridStyle}>
-            <div style={formGroupStyle}>
-              <label htmlFor="nombre_participante" style={labelStyle}>Nombre:</label>
-              <input 
-                id="nombre_participante" 
-                name="nombre_participante" 
-                value={formData.nombre_participante} 
-                onChange={handleChange} 
-                required 
-                style={inputStyle}
-              />
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="edad" style={labelStyle}>Edad:</label>
-              <input 
-                id="edad" 
-                type="number" 
-                name="edad" 
-                value={formData.edad} 
-                onChange={handleChange} 
-                required 
-                style={inputStyle}
-              />
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="sexo" style={labelStyle}>Sexo:</label>
-              <select 
-                id="sexo" 
-                name="sexo" 
-                value={formData.sexo} 
-                onChange={handleChange} 
-                required 
-                style={inputStyle}
-              >
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-              </select>
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="barrio" style={labelStyle}>Barrio:</label>
-              <input 
-                id="barrio" 
-                name="barrio" 
-                value={formData.barrio} 
-                onChange={handleChange} 
-                style={inputStyle}
-              />
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="fecha_nacimiento" style={labelStyle}>Fecha de nacimiento:</label>
-              <input 
-                id="fecha_nacimiento" 
-                type="date" 
-                name="fecha_nacimiento" 
-                value={formData.fecha_nacimiento} 
-                onChange={handleChange} 
-                required 
-                style={inputStyle}
-              />
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="bautizado" style={labelStyle}>Bautizado:</label>
-              <select 
-                id="bautizado" 
-                name="bautizado" 
-                value={formData.bautizado} 
-                onChange={handleChange} 
-                style={inputStyle}
-              >
-                <option value="Si">Sí</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-            
-            <div style={formGroupStyle}>
-              <label htmlFor="rol" style={labelStyle}>Rol:</label>
-              <select 
-                id="rol" 
-                name="rol" 
-                value={formData.rol} 
-                onChange={handleChange} 
-                style={inputStyle}
-              >
-                <option value="Tropa">Tropa</option>
-                <option value="Capitan">Capitán</option>
-                <option value="Valiente de David">Valiente de David</option>
-                <option value="Intendente">Intendente</option>
-              </select>
-            </div>
+    <>
+      <div dangerouslySetInnerHTML={{ __html: mediaQueries }} />
+      <div style={containerStyle} className="container">
+        <div style={cardStyle} className="card">
+          <h2 style={headerStyle} className="header">Añadir Participante</h2>
+          <form onSubmit={handleSubmit}>
+            <div style={gridStyle} className="form-grid">
+              <div style={formGroupStyle}>
+                <label htmlFor="nombre_participante" style={labelStyle}>Nombre:</label>
+                <input 
+                  id="nombre_participante" 
+                  name="nombre_participante" 
+                  value={formData.nombre_participante} 
+                  onChange={handleChange} 
+                  required 
+                  style={inputStyle}
+                  className="input"
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="edad" style={labelStyle}>Edad:</label>
+                <input 
+                  id="edad" 
+                  type="number" 
+                  name="edad" 
+                  value={formData.edad} 
+                  onChange={handleChange} 
+                  required 
+                  style={inputStyle}
+                  className="input"
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="sexo" style={labelStyle}>Sexo:</label>
+                <select 
+                  id="sexo" 
+                  name="sexo" 
+                  value={formData.sexo} 
+                  onChange={handleChange} 
+                  required 
+                  style={inputStyle}
+                  className="input"
+                >
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                </select>
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="barrio" style={labelStyle}>Barrio:</label>
+                <input 
+                  id="barrio" 
+                  name="barrio" 
+                  value={formData.barrio} 
+                  onChange={handleChange} 
+                  style={inputStyle}
+                  className="input"
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="fecha_nacimiento" style={labelStyle}>Fecha de nacimiento:</label>
+                <input 
+                  id="fecha_nacimiento" 
+                  type="date" 
+                  name="fecha_nacimiento" 
+                  value={formData.fecha_nacimiento} 
+                  onChange={handleChange} 
+                  required 
+                  style={inputStyle}
+                  className="input"
+                />
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="bautizado" style={labelStyle}>Bautizado:</label>
+                <select 
+                  id="bautizado" 
+                  name="bautizado" 
+                  value={formData.bautizado} 
+                  onChange={handleChange} 
+                  style={inputStyle}
+                  className="input"
+                >
+                  <option value="Si">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              
+              <div style={formGroupStyle}>
+                <label htmlFor="rol" style={labelStyle}>Rol:</label>
+                <select 
+                  id="rol" 
+                  name="rol" 
+                  value={formData.rol} 
+                  onChange={handleChange} 
+                  style={inputStyle}
+                  className="input"
+                >
+                  <option value="Tropa">Tropa</option>
+                  <option value="Capitan">Capitán</option>
+                  <option value="Valiente de David">Valiente de David</option>
+                  <option value="Intendente">Intendente</option>
+                </select>
+              </div>
 
-            <div style={formGroupStyle}>
-              <label htmlFor="necesitaAcudiente" style={labelStyle}>¿Necesita acudiente?</label>
-              <select 
-                id="necesitaAcudiente" 
-                value={necesitaAcudiente} 
-                onChange={(e) => setNecesitaAcudiente(e.target.value)} 
-                style={inputStyle}
-              >
-                <option value="">Seleccione...</option>
-                <option value="si">Sí</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-          </div>
-          
-          <div style={{...formGroupStyle, display: "flex", alignItems: "center", gap: "10px"}}>
-            <label htmlFor="destacado" style={{ ...labelStyle, marginBottom: 0 }}>Destacado:</label>
-            <input 
-              id="destacado" 
-              type="checkbox" 
-              name="destacado" 
-              checked={formData.destacado} 
-              onChange={handleChange} 
-              style={{ transform: "scale(1.2)" }}
-            />
-          </div>
-
-          {necesitaAcudiente === "si" && (
-            <div style={cardStyle}>
-              <h4 style={subHeaderStyle}>Datos del Acudiente</h4>
-              <div style={gridStyle}>
-                <div style={formGroupStyle}>
-                  <label htmlFor="nombre_acudiente" style={labelStyle}>Nombre del acudiente:</label>
-                  <input 
-                    id="nombre_acudiente" 
-                    name="nombre_acudiente" 
-                    value={acudiente.nombre_acudiente} 
-                    onChange={handleAcudienteChange} 
-                    required={necesitaAcudiente === "si"} 
-                    style={inputStyle}
-                  />
-                </div>
-                
-                <div style={formGroupStyle}>
-                  <label htmlFor="parentezco" style={labelStyle}>Parentesco:</label>
-                  <input 
-                    id="parentezco" 
-                    name="parentezco" 
-                    value={acudiente.parentezco} 
-                    onChange={handleAcudienteChange} 
-                    required={necesitaAcudiente === "si"} 
-                    style={inputStyle}
-                  />
-                </div>
-                
-                <div style={formGroupStyle}>
-                  <label htmlFor="celular" style={labelStyle}>Celular:</label>
-                  <input 
-                    id="celular" 
-                    name="celular" 
-                    value={acudiente.celular} 
-                    onChange={handleAcudienteChange} 
-                    required={necesitaAcudiente === "si"} 
-                    style={inputStyle}
-                  />
-                </div>
+              <div style={formGroupStyle}>
+                <label htmlFor="necesitaAcudiente" style={labelStyle}>¿Necesita acudiente?</label>
+                <select 
+                  id="necesitaAcudiente" 
+                  value={necesitaAcudiente} 
+                  onChange={(e) => setNecesitaAcudiente(e.target.value)} 
+                  style={inputStyle}
+                  className="input"
+                >
+                  <option value="">Seleccione...</option>
+                  <option value="si">Sí</option>
+                  <option value="no">No</option>
+                </select>
               </div>
             </div>
-          )}
-          
-          <button type="submit" style={buttonSuccess}>
-            Guardar
-          </button>
-        </form>
-      </div>
-
-      {/* Lista de Participantes */}
-      <div style={cardStyle}>
-        <h3 style={subHeaderStyle}>Lista de Participantes</h3>
-        
-        {loading ? (
-          <p>Cargando participantes...</p>
-        ) : participantes.length === 0 ? (
-          <p>No hay participantes registrados.</p>
-        ) : (
-          <div>
-            {participantes.map((participante) => (
-              <div key={participante.id_participante} style={listItemStyle}>
-                <div>
-                  <strong>{participante.nombre_participante}</strong>
-                  <span style={{ marginLeft: "10px", color: "#666" }}>
-                    {participante.edad} años - {participante.rol}
-                    {participante.destacado && <span style={{ color: "#f39c12", marginLeft: "5px" }}>⭐</span>}
-                  </span>
-                </div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button
-                    onClick={() => verDetalles(participante)}
-                    style={buttonInfo}
-                  >
-                    Ver detalles
-                  </button>
-                  <button
-                    onClick={() => eliminarParticipante(participante.id_participante)}
-                    style={buttonDanger}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Modal de Detalles */}
-      {showDetails && selectedParticipante && (
-        <div style={modalStyle} onClick={() => setShowDetails(false)}>
-          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setShowDetails(false)}
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                background: "none",
-                border: "none",
-                fontSize: "24px",
-                cursor: "pointer",
-                color: "#999"
-              }}
-            >
-              ×
-            </button>
             
-            <h3 style={subHeaderStyle}>Detalles del Participante</h3>
-            
-            <div style={gridStyle}>
-              <div><strong>Nombre:</strong> {selectedParticipante.nombre_participante}</div>
-              <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
-              <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
-              <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
-              <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
-              <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
-              <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
-              <div><strong>Destacado:</strong> {selectedParticipante.destacado ? "Sí ⭐" : "No"}</div>
+            <div style={{...formGroupStyle, display: "flex", alignItems: "center", gap: "10px"}}>
+              <label htmlFor="destacado" style={{ ...labelStyle, marginBottom: 0 }}>Destacado:</label>
+              <input 
+                id="destacado" 
+                type="checkbox" 
+                name="destacado" 
+                checked={formData.destacado} 
+                onChange={handleChange} 
+                style={{ transform: "scale(1.2)" }}
+              />
             </div>
 
-            {selectedParticipante.acudiente && (
-              <div style={{ marginTop: "20px" }}>
-                <h4 style={subHeaderStyle}>Datos del Acudiente</h4>
-                <div style={gridStyle}>
-                  <div><strong>Nombre:</strong> {selectedParticipante.acudiente.nombre_acudiente}</div>
-                  <div><strong>Parentesco:</strong> {selectedParticipante.acudiente.parentezco}</div>
-                  <div><strong>Celular:</strong> {selectedParticipante.acudiente.celular}</div>
+            {necesitaAcudiente === "si" && (
+              <div style={cardStyle} className="card">
+                <h4 style={subHeaderStyle} className="sub-header">Datos del Acudiente</h4>
+                <div style={gridStyle} className="form-grid">
+                  <div style={formGroupStyle}>
+                    <label htmlFor="nombre_acudiente" style={labelStyle}>Nombre del acudiente:</label>
+                    <input 
+                      id="nombre_acudiente" 
+                      name="nombre_acudiente" 
+                      value={acudiente.nombre_acudiente} 
+                      onChange={handleAcudienteChange} 
+                      required={necesitaAcudiente === "si"} 
+                      style={inputStyle}
+                      className="input"
+                    />
+                  </div>
+                  
+                  <div style={formGroupStyle}>
+                    <label htmlFor="parentezco" style={labelStyle}>Parentesco:</label>
+                    <input 
+                      id="parentezco" 
+                      name="parentezco" 
+                      value={acudiente.parentezco} 
+                      onChange={handleAcudienteChange} 
+                      required={necesitaAcudiente === "si"} 
+                      style={inputStyle}
+                      className="input"
+                    />
+                  </div>
+                  
+                  <div style={formGroupStyle}>
+                    <label htmlFor="celular" style={labelStyle}>Celular:</label>
+                    <input 
+                      id="celular" 
+                      name="celular" 
+                      value={acudiente.celular} 
+                      onChange={handleAcudienteChange} 
+                      required={necesitaAcudiente === "si"} 
+                      style={inputStyle}
+                      className="input"
+                    />
+                  </div>
                 </div>
               </div>
             )}
-          </div>
+            
+            <button type="submit" style={buttonSuccess} className="button">
+              Guardar
+            </button>
+          </form>
         </div>
-      )}
-    </div>
+
+        {/* Lista de Participantes */}
+        <div style={cardStyle} className="card">
+          <h3 style={subHeaderStyle} className="sub-header">Lista de Participantes</h3>
+          
+          {loading ? (
+            <p>Cargando participantes...</p>
+          ) : participantes.length === 0 ? (
+            <p>No hay participantes registrados.</p>
+          ) : (
+            <div>
+              {participantes.map((participante) => (
+                <div key={participante.id_participante} style={listItemStyle} className="participant-item">
+                  <div style={listItemInfoStyle} className="participant-info">
+                    <strong>{participante.nombre_participante}</strong>
+                    <div style={{ color: "#666", fontSize: "14px", marginTop: "4px" }}>
+                      {participante.edad} años - {participante.rol}
+                      {participante.destacado && <span style={{ color: "#f39c12", marginLeft: "5px" }}>⭐</span>}
+                    </div>
+                  </div>
+                  <div style={listItemActionsStyle} className="participant-actions">
+                    <button
+                      onClick={() => verDetalles(participante)}
+                      style={buttonInfo}
+                      className="button"
+                    >
+                      Ver detalles
+                    </button>
+                    <button
+                      onClick={() => eliminarParticipante(participante.id_participante)}
+                      style={buttonDanger}
+                      className="button"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Modal de Detalles */}
+        {showDetails && selectedParticipante && (
+          <div style={modalStyle} onClick={() => setShowDetails(false)}>
+            <div style={modalContentStyle} className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setShowDetails(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#999"
+                }}
+              >
+                ×
+              </button>
+              
+              <h3 style={subHeaderStyle} className="sub-header">Detalles del Participante</h3>
+              
+              <div style={responsiveGridStyle} className="modal-grid">
+                <div><strong>Nombre:</strong> {selectedParticipante.nombre_participante}</div>
+                <div><strong>Edad:</strong> {selectedParticipante.edad} años</div>
+                <div><strong>Sexo:</strong> {selectedParticipante.sexo}</div>
+                <div><strong>Barrio:</strong> {selectedParticipante.barrio || "No especificado"}</div>
+                <div><strong>Fecha de nacimiento:</strong> {selectedParticipante.fecha_nacimiento}</div>
+                <div><strong>Bautizado:</strong> {selectedParticipante.bautizado}</div>
+                <div><strong>Rol:</strong> {selectedParticipante.rol}</div>
+                <div><strong>Destacado:</strong> {selectedParticipante.destacado ? "Sí ⭐" : "No"}</div>
+              </div>
+
+              {selectedParticipante.acudiente && (
+                <div style={{ marginTop: "20px" }}>
+                  <h4 style={subHeaderStyle} className="sub-header">Datos del Acudiente</h4>
+                  <div style={responsiveGridStyle} className="modal-grid">
+                    <div><strong>Nombre:</strong> {selectedParticipante.acudiente.nombre_acudiente}</div>
+                    <div><strong>Parentesco:</strong> {selectedParticipante.acudiente.parentezco}</div>
+                    <div><strong>Celular:</strong> {selectedParticipante.acudiente.celular}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
