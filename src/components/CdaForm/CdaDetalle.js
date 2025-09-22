@@ -504,8 +504,8 @@ export default function CdaDetalle({
                   }}
                 >
                   <option value="">Todos</option>
-                  <option value="M">Masculino</option>
-                  <option value="F">Femenino</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
                 </select>
               </div>
 
@@ -674,7 +674,7 @@ export default function CdaDetalle({
                         padding: "12px",
                         borderBottom: "1px solid #e1e5e9",
                         fontSize: "14px"
-                      }}>{p.sexo === "M" ? "Masculino" : p.sexo === "F" ? "Femenino" : p.sexo}</td>
+                      }}>{p.sexo}</td>
                       <td style={{
                         padding: "12px",
                         borderBottom: "1px solid #e1e5e9",
