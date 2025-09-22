@@ -87,13 +87,16 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  width: 100%; /* Full width on small screens */
+  margin-top: 10px; /* Add some space above the button */
 }
 
 .buttonSuccess:hover {
   background-color: #218838;
 }
 
-.buttonDanger {
+.buttonDanger,
+.buttonDetails {
   background-color: #dc3545;
   color: white;
   border: none;
@@ -101,6 +104,11 @@
   padding: 8px 12px;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.buttonDanger {
+  background-color: #dc3545;
 }
 
 .buttonDanger:hover {
@@ -109,12 +117,6 @@
 
 .buttonDetails {
   background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  cursor: pointer;
 }
 
 .buttonDetails:hover {
@@ -178,6 +180,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 16px; /* A bit larger for better readability */
 }
 
 .destacadoIcon {
@@ -187,6 +190,7 @@
 .participantDetails {
   font-size: 13px;
   color: #666;
+  margin-top: 4px; /* Add a little space below the name */
 }
 
 .participantActions {
@@ -201,16 +205,15 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: white; /* El fondo blanco ahora se encarga de todo */
+  background: white;
   z-index: 1000;
-  overflow-y: auto; /* Permite desplazamiento del contenido */
-  padding: 25px; /* Agrega un espacio para que el contenido no toque los bordes */
+  overflow-y: auto;
+  padding: 25px;
 }
 
 .modalContent {
-  /* Se eliminaron los estilos de centrado y se agregaron estilos de un contenedor normal */
-  max-width: 900px; /* Limita el ancho del contenido para que no sea muy largo */
-  margin: 0 auto; /* Centra el contenido dentro del modal full screen */
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .closeButton {
@@ -246,4 +249,67 @@
   color: #666;
   background-color: #f8f9fa;
   border-radius: 8px;
+}
+
+/* MEDIA QUERIES for better responsiveness on smaller screens */
+
+@media (max-width: 768px) {
+  .participantesContainer {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 15px;
+  }
+  
+  .header {
+    font-size: 22px;
+  }
+  
+  .subHeader {
+    font-size: 16px;
+  }
+  
+  .formGrid {
+    grid-template-columns: 1fr; /* Stack all form items on mobile */
+  }
+  
+  .input {
+    font-size: 16px; /* Larger font size for better mobile readability */
+  }
+  
+  .buttonSuccess,
+  .buttonPrimary,
+  .buttonSecondary {
+    width: 100%; /* Make action buttons full-width */
+    margin-top: 15px; /* Add more vertical spacing */
+  }
+  
+  .participantItem {
+    flex-direction: column; /* Stack details and buttons vertically */
+    align-items: flex-start;
+  }
+
+  .participantDetails {
+    margin-bottom: 8px;
+  }
+  
+  .participantActions {
+    margin-top: 10px; /* Space between details and action buttons */
+    width: 100%;
+    justify-content: space-around; /* Distribute buttons evenly */
+  }
+  
+  .buttonDetails,
+  .buttonDanger {
+    flex: 1; /* Allow buttons to grow and fill the space */
+    text-align: center;
+    padding: 10px; /* Larger tap target */
+  }
+  
+  .closeButton {
+    font-size: 28px; /* Larger close button */
+    right: 15px;
+    top: 15px;
+  }
 }
