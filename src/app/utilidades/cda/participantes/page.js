@@ -40,6 +40,7 @@ export default function ParticipantesForm() {
     
     return matchesName && matchesDestacado;
   });
+
   const cargarParticipantes = async () => {
     setLoading(true);
     try {
@@ -95,6 +96,94 @@ export default function ParticipantesForm() {
     } catch (err) {
       console.error("Error obteniendo detalles:", err);
       alert("Error obteniendo detalles del participante");
+    }
+  };
+
+  // Función para iniciar edición
+  const iniciarEdicion = (participante) => {
+    setEditData({
+      participante: {
+        id_participante: participante.id_participante,
+        nombre_participante: participante.nombre_participante,
+        edad: participante.edad,
+        sexo: participante.sexo,
+        barrio: participante.barrio || "",
+        fecha_nacimiento: participante.fecha_nacimiento,
+        bautizado: participante.bautizado,
+        destacado: participante.destacado,
+        rol: participante.rol
+      },
+      acudiente: participante.acudiente ? {
+        id_acudiente: participante.acudiente.id_acudiente,
+        nombre_acudiente: participante.acudiente.nombre_acudiente,
+        parentezco: participante.acudiente.parentezco,
+        celular: participante.acudiente.celular
+      } : null
+    });
+    setIsEditing(true);
+  };
+
+  // Función para guardar edición
+  const guardarEdicion = async () => {
+    if (!editData) return;
+
+    try {
+      // Actualizar datos del participante
+      const { error: errorParticipante } = await supabase
+        .from("participantes")
+        .update({
+          nombre_participante: editData.participante.nombre_participante.trim(),
+          edad: parseInt(editData.participante.edad, 10),
+          sexo: editData.participante.sexo,
+          barrio: editData.participante.barrio.trim() || null,
+          fecha_nacimiento: editData.participante.fecha_nacimiento,
+          bautizado: editData.participante.bautizado,
+          destacado: editData.participante.destacado,
+          rol: editData.participante.rol
+        })
+        .eq("id_participante", editData.participante.id_participante);
+
+      if (errorParticipante) {
+        console.error("Error actualizando participante:", errorParticipante);
+        alert("Error actualizando participante: " + errorParticipante.message);
+        return;
+      }
+
+      // Actualizar datos del acudiente si existe
+      if (editData.acudiente) {
+        const { error: errorAcudiente } = await supabase
+          .from("acudientes")
+          .update({
+            nombre_acudiente: editData.acudiente.nombre_acudiente.trim(),
+            parentezco: editData.acudiente.parentezco.trim(),
+            celular: editData.acudiente.celular.trim()
+          })
+          .eq("id_acudiente", editData.acudiente.id_acudiente);
+
+        if (errorAcudiente) {
+          console.error("Error actualizando acudiente:", errorAcudiente);
+          alert("Error actualizando acudiente: " + errorAcudiente.message);
+          return;
+        }
+      }
+
+      alert("Datos actualizados exitosamente");
+      
+      // Actualizar el participante seleccionado con los nuevos datos
+      const updatedParticipante = {
+        ...editData.participante,
+        acudiente: editData.acudiente
+      };
+      setSelectedParticipante(updatedParticipante);
+      
+      // Recargar la lista y salir del modo edición
+      cargarParticipantes();
+      setIsEditing(false);
+      setEditData(null);
+
+    } catch (err) {
+      console.error("Error inesperado:", err);
+      alert("Error inesperado actualizando datos");
     }
   };
 
@@ -229,7 +318,7 @@ export default function ParticipantesForm() {
     }
   };
 
-  // Estilos consistentes con CdaForm.js
+  // Estilos consistentes con CdaForm.js - SIN EFECTOS DE HOVER/ZOOM
   const containerStyle = {
     padding: "16px",
     maxWidth: "1200px",
@@ -237,7 +326,7 @@ export default function ParticipantesForm() {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
   };
 
-  // Media queries para responsive
+  // Media queries para responsive - SIN EFECTOS DE HOVER
   const mediaQueries = `
     <style>
       @media (max-width: 768px) {
@@ -328,6 +417,7 @@ export default function ParticipantesForm() {
     marginBottom: "16px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
     border: "1px solid #e1e5e9"
+    // REMOVIDO: transform, transition y hover effects
   };
 
   const buttonPrimary = {
@@ -425,6 +515,7 @@ export default function ParticipantesForm() {
     border: "1px solid #e9ecef",
     flexWrap: "wrap",
     gap: "8px"
+    // REMOVIDO: hover effects y transform
   };
 
   const listItemInfoStyle = {
