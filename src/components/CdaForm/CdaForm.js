@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import CdaList from "./CdaList";
 import CdaDetalle from "./CdaDetalle";
-import styles from "./CdaForm.module.css";
 
 export default function CdaForm() {
   const initialForm = {
@@ -22,11 +21,11 @@ export default function CdaForm() {
   const [cdaSeleccionada, setCdaSeleccionada] = useState(null);
   const [openCda, setOpenCda] = useState(null);
 
-  // filtros detalle
+  // filtros detalle - CORREGIR: valor inicial debe ser "nombre" no "nombre_participante"
   const [filtroNombre, setFiltroNombre] = useState("");
   const [filtroSexo, setFiltroSexo] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
-  const [ordenarPor, setOrdenarPor] = useState("nombre");
+  const [ordenarPor, setOrdenarPor] = useState("nombre"); // CORREGIDO
   const [ordenDireccion, setOrdenDireccion] = useState("asc");
 
   // edición de siembra
@@ -83,9 +82,10 @@ export default function CdaForm() {
         .eq("id_cda", id_cda);
       if (error) throw error;
 
-      setParticipantesDetallados(data.map((item) => item.participantes));
+      const participantesQueAsistieron = data.map(item => item.participantes);
+      setParticipantesDetallados(participantesQueAsistieron);
     } catch (err) {
-      console.error("Error al obtener participantes:", err);
+      console.error("Error al obtener participantes de CDA:", err);
     }
   };
 
@@ -116,16 +116,45 @@ export default function CdaForm() {
       event.preventDefault();
       event.stopPropagation();
     }
-    if (!confirm("¿Eliminar CDA?")) return;
+    if (!confirm("¿Estás seguro de que deseas eliminar esta CDA? Esta acción no se puede deshacer.")) return;
 
     try {
-      await supabase.from("cda_participantes").delete().eq("id_cda", id_cda);
-      await supabase.from("cda").delete().eq("id_cda", id_cda);
+      console.log("Eliminando relaciones de participantes..."); 
+      
+      // Primero eliminar las relaciones en cda_participantes
+      const { error: errorRelaciones } = await supabase
+        .from('cda_participantes')
+        .delete()
+        .eq('id_cda', id_cda);
 
-      alert("CDA eliminada");
-      fetchAllCdaData();
+      if (errorRelaciones) {
+        console.error("Error al eliminar relaciones:", errorRelaciones);
+        alert("Error al eliminar las relaciones de participantes. No se pudo completar la eliminación.");
+        return;
+      }
+
+      console.log("Eliminando CDA...");
+
+      // Luego eliminar la CDA
+      const { error } = await supabase
+        .from('cda')
+        .delete()
+        .eq('id_cda', id_cda);
+
+      if (error) {
+        console.error("Error al eliminar CDA:", error);
+        throw error;
+      }
+
+      console.log("CDA eliminada exitosamente");
+      alert("CDA eliminada correctamente");
+      
+      // Actualizar la lista
+      await fetchAllCdaData();
+
     } catch (err) {
-      alert("Error eliminando CDA: " + err.message);
+      console.error("Error completo al eliminar CDA:", err);
+      alert("Hubo un error al eliminar la CDA: " + err.message);
     }
   };
 
@@ -149,49 +178,121 @@ export default function CdaForm() {
     fetchAllParticipantes();
   }, []);
 
+  // ---------- ESTILOS INLINE ORIGINALES ----------
+  const containerStyle = {
+    padding: "16px",
+    maxWidth: "1200px",
+    margin: "0 auto",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+  };
+
+  const cardStyle = {
+    backgroundColor: "#ffffff",
+    borderRadius: "12px",
+    padding: "20px",
+    marginBottom: "16px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    border: "1px solid #e1e5e9"
+  };
+
+  const buttonPrimary = {
+    backgroundColor: "#0066cc",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    padding: "12px 20px",
+    fontSize: "14px",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    display: "inline-block",
+    textAlign: "center",
+    minWidth: "120px"
+  };
+
+  const inputStyle = {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #ddd",
+    borderRadius: "6px",
+    fontSize: "14px",
+    transition: "border-color 0.2s",
+    boxSizing: "border-box"
+  };
+
+  const labelStyle = {
+    display: "block",
+    marginBottom: "6px",
+    fontWeight: "500",
+    color: "#333",
+    fontSize: "14px"
+  };
+
+  const formGroupStyle = {
+    marginBottom: "16px"
+  };
+
+  const gridStyle = {
+    display: "grid",
+    gap: "16px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))"
+  };
+
+  const headerStyle = {
+    color: "#333",
+    fontSize: "24px",
+    fontWeight: "600",
+    marginBottom: "20px",
+    borderBottom: "2px solid #0066cc",
+    paddingBottom: "10px"
+  };
+
   // ---------- RENDER ----------
   return (
-    <div className={styles.container}>
+    <div style={containerStyle}>
       {vista === "lista" && (
         <>
-          <div className={styles.card}>
-            <h2 className={styles.header}>Agregar Casa de Adolescentes</h2>
-            <div className={styles.grid}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha inicio *:</label>
-                <input
-                  type="datetime-local"
-                  name="fecha_inicio"
-                  value={formData.fecha_inicio}
-                  onChange={handleChange}
-                  className={styles.input}
-                />
+          <div style={cardStyle}>
+            <h2 style={headerStyle}>Agregar Casa de Adolescentes</h2>
+            <div>
+              <div style={gridStyle}>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Fecha inicio *:</label>
+                  <input
+                    type="datetime-local"
+                    name="fecha_inicio"
+                    value={formData.fecha_inicio}
+                    onChange={handleChange}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Fecha término:</label>
+                  <input
+                    type="datetime-local"
+                    name="fecha_termino"
+                    value={formData.fecha_termino}
+                    onChange={handleChange}
+                    style={inputStyle}
+                  />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Siembra:</label>
+                  <input
+                    type="number"
+                    name="siembra"
+                    value={formData.siembra || ""}
+                    onChange={handleChange}
+                    style={inputStyle}
+                    placeholder="Número de siembra"
+                  />
+                </div>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Fecha término:</label>
-                <input
-                  type="datetime-local"
-                  name="fecha_termino"
-                  value={formData.fecha_termino}
-                  onChange={handleChange}
-                  className={styles.input}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Siembra:</label>
-                <input
-                  type="number"
-                  name="siembra"
-                  value={formData.siembra || ""}
-                  onChange={handleChange}
-                  className={styles.input}
-                  placeholder="Número de siembra"
-                />
-              </div>
+              <button type="button" onClick={handleSubmit} style={buttonPrimary}>
+                Guardar CDA
+              </button>
             </div>
-            <button onClick={handleSubmit} className={styles.btnPrimary}>
-              Guardar CDA
-            </button>
           </div>
 
           <CdaList
