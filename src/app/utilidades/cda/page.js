@@ -1,20 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// Componentes simulados para la demo
-const ParticipantesForm = () => (
-  <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.9)', borderRadius: '15px', margin: '2rem 0' }}>
-    <h3>Formulario de Participantes</h3>
-    <p>Aquí iría el componente ParticipantesForm</p>
-  </div>
-);
-
-const CdaForm = () => (
-  <div style={{ padding: '2rem', background: 'rgba(255,255,255,0.9)', borderRadius: '15px', margin: '2rem 0' }}>
-    <h3>Formulario CDA</h3>
-    <p>Aquí iría el componente CdaForm</p>
-  </div>
-);
+import ParticipantesForm from "./participantes/page";
+import CdaForm from "../../../components/CdaForm/CdaForm";
 
 export default function CdaPage() {
   const [vista, setVista] = useState("inicio");
